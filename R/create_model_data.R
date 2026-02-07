@@ -52,8 +52,8 @@ create_model_data = function(y,
     time = time_seq_unique
   )
 
-  B_theta = basis_funcions$model_matrix
-  S_theta = basis_funcions$nD
+  B_theta = theta_basis_funcions$model_matrix
+  S_theta = theta_basis_funcions$nD
   S_theta = S_theta * theta_spline_penalty
   S_theta[1, 1] = theta_intercept_penalty
 
