@@ -105,16 +105,15 @@ arma::mat sample_theta_i_cpp(
 
 }
 
-
 // [[Rcpp::export]]
 arma::mat cpp_compute_V(arma::mat X,
                         arma::vec omega,
-                        arma::mat inv_cov) {
+                        arma::mat precision_matrix) {
 
   arma::mat XtOmegaX = X.each_col() % omega;
   XtOmegaX = XtOmegaX.t() * X;
   XtOmegaX += 1e-7 * arma::eye(X.n_cols, X.n_cols);
-  arma::mat V = arma::inv(XtOmegaX + inv_cov);
+  arma::mat V = arma::inv(XtOmegaX + precision_matrix);
 
   return V;
 }
@@ -160,3 +159,81 @@ double logsumexp_cpp(const arma::vec& x) {
   double xmax = x.max();
   return xmax + std::log(arma::sum(arma::exp(x - xmax)));
 }
+
+// [[Rcpp::export]]
+arma::mat update_theta2_cpp(arma::mat epsilon, Rcpp::List model_data) {
+
+  // Extract nested list elements
+  Rcpp::List theta_spline = model_data["theta_spline"];
+  arma::mat R = Rcpp::as<arma::mat>(theta_spline["R"]);
+
+  Rcpp::List dims = model_data["dims"];
+  int n_id = dims["n_id"];
+
+  Rcpp::List data_list = model_data["data"];
+  arma::vec id = Rcpp::as<arma::vec>(data_list["id"]);
+  arma::vec id_unique = Rcpp::as<arma::vec>(data_list["id_unique"]);
+
+  // Initialize theta as a copy of epsilon
+  arma::mat theta = epsilon;
+
+  // Loop through each unique ID
+  for(int i = 0; i < n_id; i++) {
+    double id_i = id_unique(i);
+
+    // Explicitly call arma::find and arma::uvec
+    arma::uvec idx = arma::find(id == id_i);
+
+    // Matrix multiplication and sub-matrix assignment
+    theta.rows(idx) = R * epsilon.rows(idx);
+  }
+
+  return theta;
+}
+
+// [[Rcpp::export]]
+arma::mat post_epsilon_cpp(arma::mat prec_prior,
+                           arma::mat prec_data,
+                           arma::mat MU_scaled,
+                           arma::mat Rty_alpha_scaled) {
+
+  int n = prec_prior.n_rows;
+  arma::vec z = arma::randn<arma::vec>(n);
+
+  arma::mat post_cov = arma::inv_sympd(prec_prior + prec_data);
+  arma::mat V = arma::chol(post_cov, "lower");
+
+  arma::mat post_center = post_cov * arma::vectorise(MU_scaled + Rty_alpha_scaled);
+  arma::mat epsilon_vec = post_center + V * z;
+
+  return epsilon_vec;
+
+}
+
+// [[Rcpp::export]]
+arma::vec post_epsilon_cpp2(const arma::mat& prec_prior,
+                            const arma::mat& prec_data,
+                            const arma::mat& MU_scaled,
+                            const arma::mat& Rty_alpha_scaled) {
+
+  int n = prec_prior.n_rows;
+
+  // Cholesky of precision (avoid explicit inverse)
+  arma::mat L = arma::chol(prec_prior + prec_data, "lower");
+
+  // RHS for mean
+  arma::vec rhs = arma::vectorise(MU_scaled + Rty_alpha_scaled);
+
+  // Solve for posterior mean via triangular solves: L * L^T * mu = rhs
+  arma::vec post_mean = arma::solve(arma::trimatl(L), rhs);
+  post_mean = arma::solve(arma::trimatu(L.t()), post_mean);
+
+  // Sample noise: if prec = L*L^T, then Sigma = L^{-T}*L^{-1}, so L^{-T}*z ~ N(0, Sigma)
+  arma::vec z = arma::randn<arma::vec>(n);
+  arma::vec noise = arma::solve(arma::trimatu(L.t()), z);
+
+  return post_mean + noise;
+
+}
+
+

@@ -13,8 +13,8 @@ sample_theta_i_cpp <- function(y, alpha, prior_mean, prior_precision, psi) {
     .Call(`_mixff_sample_theta_i_cpp`, y, alpha, prior_mean, prior_precision, psi)
 }
 
-cpp_compute_V <- function(X, omega, inv_cov) {
-    .Call(`_mixff_cpp_compute_V`, X, omega, inv_cov)
+cpp_compute_V <- function(X, omega, precision_matrix) {
+    .Call(`_mixff_cpp_compute_V`, X, omega, precision_matrix)
 }
 
 cpp_compute_m <- function(V, X, z, omega, C, center, inv_cov) {
@@ -31,5 +31,17 @@ sample_beta <- function(X, omega, inv_cov, z, C, center) {
 
 logsumexp_cpp <- function(x) {
     .Call(`_mixff_logsumexp_cpp`, x)
+}
+
+update_theta2_cpp <- function(epsilon, model_data) {
+    .Call(`_mixff_update_theta2_cpp`, epsilon, model_data)
+}
+
+post_epsilon_cpp <- function(prec_prior, prec_data, MU_scaled, Rty_alpha_scaled) {
+    .Call(`_mixff_post_epsilon_cpp`, prec_prior, prec_data, MU_scaled, Rty_alpha_scaled)
+}
+
+post_epsilon_cpp2 <- function(prec_prior, prec_data, MU_scaled, Rty_alpha_scaled) {
+    .Call(`_mixff_post_epsilon_cpp2`, prec_prior, prec_data, MU_scaled, Rty_alpha_scaled)
 }
 

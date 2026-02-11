@@ -58,15 +58,15 @@ BEGIN_RCPP
 END_RCPP
 }
 // cpp_compute_V
-arma::mat cpp_compute_V(arma::mat X, arma::vec omega, arma::mat inv_cov);
-RcppExport SEXP _mixff_cpp_compute_V(SEXP XSEXP, SEXP omegaSEXP, SEXP inv_covSEXP) {
+arma::mat cpp_compute_V(arma::mat X, arma::vec omega, arma::mat precision_matrix);
+RcppExport SEXP _mixff_cpp_compute_V(SEXP XSEXP, SEXP omegaSEXP, SEXP precision_matrixSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< arma::mat >::type X(XSEXP);
     Rcpp::traits::input_parameter< arma::vec >::type omega(omegaSEXP);
-    Rcpp::traits::input_parameter< arma::mat >::type inv_cov(inv_covSEXP);
-    rcpp_result_gen = Rcpp::wrap(cpp_compute_V(X, omega, inv_cov));
+    Rcpp::traits::input_parameter< arma::mat >::type precision_matrix(precision_matrixSEXP);
+    rcpp_result_gen = Rcpp::wrap(cpp_compute_V(X, omega, precision_matrix));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -127,6 +127,46 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// update_theta2_cpp
+arma::mat update_theta2_cpp(arma::mat epsilon, Rcpp::List model_data);
+RcppExport SEXP _mixff_update_theta2_cpp(SEXP epsilonSEXP, SEXP model_dataSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::mat >::type epsilon(epsilonSEXP);
+    Rcpp::traits::input_parameter< Rcpp::List >::type model_data(model_dataSEXP);
+    rcpp_result_gen = Rcpp::wrap(update_theta2_cpp(epsilon, model_data));
+    return rcpp_result_gen;
+END_RCPP
+}
+// post_epsilon_cpp
+arma::mat post_epsilon_cpp(arma::mat prec_prior, arma::mat prec_data, arma::mat MU_scaled, arma::mat Rty_alpha_scaled);
+RcppExport SEXP _mixff_post_epsilon_cpp(SEXP prec_priorSEXP, SEXP prec_dataSEXP, SEXP MU_scaledSEXP, SEXP Rty_alpha_scaledSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::mat >::type prec_prior(prec_priorSEXP);
+    Rcpp::traits::input_parameter< arma::mat >::type prec_data(prec_dataSEXP);
+    Rcpp::traits::input_parameter< arma::mat >::type MU_scaled(MU_scaledSEXP);
+    Rcpp::traits::input_parameter< arma::mat >::type Rty_alpha_scaled(Rty_alpha_scaledSEXP);
+    rcpp_result_gen = Rcpp::wrap(post_epsilon_cpp(prec_prior, prec_data, MU_scaled, Rty_alpha_scaled));
+    return rcpp_result_gen;
+END_RCPP
+}
+// post_epsilon_cpp2
+arma::vec post_epsilon_cpp2(const arma::mat& prec_prior, const arma::mat& prec_data, const arma::mat& MU_scaled, const arma::mat& Rty_alpha_scaled);
+RcppExport SEXP _mixff_post_epsilon_cpp2(SEXP prec_priorSEXP, SEXP prec_dataSEXP, SEXP MU_scaledSEXP, SEXP Rty_alpha_scaledSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const arma::mat& >::type prec_prior(prec_priorSEXP);
+    Rcpp::traits::input_parameter< const arma::mat& >::type prec_data(prec_dataSEXP);
+    Rcpp::traits::input_parameter< const arma::mat& >::type MU_scaled(MU_scaledSEXP);
+    Rcpp::traits::input_parameter< const arma::mat& >::type Rty_alpha_scaled(Rty_alpha_scaledSEXP);
+    rcpp_result_gen = Rcpp::wrap(post_epsilon_cpp2(prec_prior, prec_data, MU_scaled, Rty_alpha_scaled));
+    return rcpp_result_gen;
+END_RCPP
+}
 
 static const R_CallMethodDef CallEntries[] = {
     {"_mixff_propose_coef_rcpp", (DL_FUNC) &_mixff_propose_coef_rcpp, 6},
@@ -137,6 +177,9 @@ static const R_CallMethodDef CallEntries[] = {
     {"_mixff_mvrnormArma", (DL_FUNC) &_mixff_mvrnormArma, 3},
     {"_mixff_sample_beta", (DL_FUNC) &_mixff_sample_beta, 6},
     {"_mixff_logsumexp_cpp", (DL_FUNC) &_mixff_logsumexp_cpp, 1},
+    {"_mixff_update_theta2_cpp", (DL_FUNC) &_mixff_update_theta2_cpp, 2},
+    {"_mixff_post_epsilon_cpp", (DL_FUNC) &_mixff_post_epsilon_cpp, 4},
+    {"_mixff_post_epsilon_cpp2", (DL_FUNC) &_mixff_post_epsilon_cpp2, 4},
     {NULL, NULL, 0}
 };
 

@@ -9,6 +9,7 @@ create_model_data = function(y,
                              n_basis = 10,
                              theta_intercept_penalty = 1,
                              theta_spline_penalty = 1,
+                             z_intercept_penalty = 1,
                              z_spline_penalty = 1,
                              w_dirichlet = 1) {
 
@@ -47,17 +48,24 @@ create_model_data = function(y,
   ) |>
     dplyr::mutate(id = factor(id, levels = id_unique))
 
-  theta_basis_funcions = gen_basis_matrix(
+  theta_basis_funcions = create_basis_matrix(
     n_basis = n_basis,
+    # time = c(min(time_seq_unique) - (1:2), time_seq_unique, max(time_seq_unique) + 1:2)
     time = time_seq_unique
   )
 
   B_theta = theta_basis_funcions$model_matrix
+  # B_theta = B_theta[-c(1:2, nrow(B_theta) - (1:2)), ]
   S_theta = theta_basis_funcions$nD
   S_theta = S_theta * theta_spline_penalty
   S_theta[1, 1] = theta_intercept_penalty
 
   R = B_theta %*% solve(t(B_theta) %*% B_theta + S_theta) %*% t(B_theta)
+  C = diag(n_time-1)
+  C = rbind(C, -1)
+
+  RR = kronecker(diag(n_id), R)
+  Rty = crossprod(RR, y)
 
   out = list()
 
@@ -91,7 +99,9 @@ create_model_data = function(y,
     theta_spline_penalty = theta_spline_penalty,
     B_theta = B_theta,
     S_theta = S_theta,
-    R = R
+    R = R,
+    Rty = Rty,
+    C = C
   )
 
   return(out)

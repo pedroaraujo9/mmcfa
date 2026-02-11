@@ -36,15 +36,12 @@ simulate_data = function(seed) {
       )
 
     }else if(w[i] == 2) {
-
-      if(w[i] == 2) {
         thr = sample(1:10, size = 2)
         ZM[i,] = c(
           rep(1, 20 - thr[1]),
           rep(2, 20 - thr[2]),
           rep(4, 50 - 40 + thr[1] + thr[2])
         )
-      }
 
     }else if(w[i] == 3) {
       thr = sample(1:10, size = 2)

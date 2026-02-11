@@ -12,4 +12,11 @@ LinkingTo:
     Rcpp,
     RcppArmadillo
 Imports: 
-    Rcpp
+    dplyr,
+    extraDistr,
+    mclust,
+    Rcpp,
+    testthat,
+    tidyr,
+    TraMineR
+Config/testthat/edition: 3
