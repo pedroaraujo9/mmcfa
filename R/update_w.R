@@ -18,13 +18,15 @@ update_w = function(beta, z, pw, model_data) {
   for(m in 1:M) {
 
     idx = ((m-1)*n_basis + 1):(m*n_basis)
-    beta_m = beta[idx, , drop = FALSE]
+    beta_group = beta[idx, , drop = FALSE]
 
-    prob_time = mclust::softmax(B %*% beta_m)
-    prob = prob_time[time_seq, , drop = FALSE]
+    prob_group = compute_prob_group(B, beta_group, time_seq-1)
+    log_pz = log(rowSums(Z * prob_group))
+    #prob_group = compute_prob_group(B, beta_group, time_seq-1)
+    #log_pz = compute_log_prob(Z, B, beta_group, time_seq-1)
 
-    log_pz = log(rowSums(Z * prob))
-    ll[, m] = aggregate(log_pz ~ id, FUN = sum)$log_pz + log(pw[m])
+    ll[, m] = fast_aggregate_sum(log_pz, id)[, 1] + log(pw[m])
+
   }
 
   ll = ll - matrix(
@@ -38,41 +40,41 @@ update_w = function(beta, z, pw, model_data) {
 
 }
 
-# update_w = function(beta, z, pw, model_data) {
-#
-#   G = model_data$dims$G
-#   M = model_data$dims$M
-#   n_id = model_data$dims$n_id
-#
-#   id = model_data$data$id
-#   id_unique = model_data$data$id_unique
-#   B = model_data$theta_spline$B_theta
-#
-#   Z = create_dummy(z, G)
-#   id = factor(id, levels = id_unique)
-#
-#   ll = matrix(nrow = n_id, ncol = M)
-#
-#   for(m in 1:M) {
-#
-#     w = rep(m, n_id)
-#     W = create_dummy(w, M)
-#     X = kronecker(W, B)
-#
-#     prob = mclust::softmax(X %*% beta)
-#     log_pz = log(rowSums(Z * prob))
-#     ll[, m] = aggregate(log_pz ~ id, FUN = sum)$log_pz + log(pw[m])
-#
-#   }
-#
-#   ll = ll - matrix(
-#     mclust::logsumexp(ll), nrow = n_id, ncol = M, byrow = F
-#   )
-#
-#   w = as.integer(extraDistr::rcatlp(n = n_id, log_prob = ll) + 1)
-#   names(w) = id_unique
-#
-#   return(w)
-# }
 
+update_w2 = function(beta, z, pw, model_data) {
+
+  G = model_data$dims$G
+  M = model_data$dims$M
+  n_id = model_data$dims$n_id
+
+  id = model_data$data$id
+  id_unique = model_data$data$id_unique
+  B = model_data$theta_spline$B_theta
+
+  Z = create_dummy(z, G)
+  id = factor(id, levels = id_unique)
+
+  ll = matrix(nrow = n_id, ncol = M)
+
+  for(m in 1:M) {
+
+    w = rep(m, n_id)
+    W = create_dummy(w, M)
+    X = kronecker(W, B)
+
+    prob = mclust::softmax(X %*% beta)
+    log_pz = log(rowSums(Z * prob))
+    ll[, m] = aggregate(log_pz ~ id, FUN = sum)$log_pz + log(pw[m])
+
+  }
+
+  ll = ll - matrix(
+    mclust::logsumexp(ll), nrow = n_id, ncol = M, byrow = F
+  )
+
+  w = as.integer(extraDistr::rcatlp(n = n_id, log_prob = ll) + 1)
+  names(w) = id_unique
+
+  return(w)
+}
 

@@ -46,7 +46,8 @@ create_init_values = function(model_data) {
   #### return ####
   out = list(
     alpha = alpha,
-    theta = theta_sp,
+    theta = theta,
+    theta_sp = theta_sp,
     z = z,
     mu = mu,
     w = w

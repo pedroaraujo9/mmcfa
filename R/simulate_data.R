@@ -1,20 +1,18 @@
-simulate_data = function(seed) {
+simulate_data = function(seed, n_basis = 15, theta_spline_penalty = 1) {
 
   set.seed(seed)
 
   #### define dimensions and hyperparameters ####
   K = 2
   M = 3
-  G = 4
+  G = 3
   J = 20
   n_id = 30
-  n_time = 50
+  n_time = 60
   n = n_id * n_time
   id_unique = paste0("id", 1:n_id)
   id = rep(id_unique, each = n_time)
   time = rep(1:n_time, times = n_id)
-  n_basis = 10
-  theta_spline_penalty = 1
   theta_intercept_penalty = 1
 
   #### sample global group ####
@@ -27,28 +25,28 @@ simulate_data = function(seed) {
   for(i in 1:n_id) {
 
     if(w[i] == 1) {
-
+      # 1 -- > 2
       thr = sample(1:10, size = 2)
       ZM[i,] = c(
-        rep(1, 20 - thr[1]),
-        rep(3, 20 - thr[2]),
-        rep(4, 50 - 40 + thr[1] + thr[2])
+        rep(1, 30 - thr[1]),
+        rep(2, 60 - 30 + thr[1])
       )
 
     }else if(w[i] == 2) {
-        thr = sample(1:10, size = 2)
-        ZM[i,] = c(
-          rep(1, 20 - thr[1]),
-          rep(2, 20 - thr[2]),
-          rep(4, 50 - 40 + thr[1] + thr[2])
-        )
-
-    }else if(w[i] == 3) {
+      # 1 -- > 3
       thr = sample(1:10, size = 2)
       ZM[i,] = c(
-        rep(2, 20 - thr[1]),
-        rep(3, 20 - thr[2]),
-        rep(3, 50 - 40 + thr[1] + thr[2])
+        rep(1, 30 - thr[1]),
+        rep(3, 60 - 30 + thr[1])
+      )
+
+    }else if(w[i] == 3) {
+      # 1 --> 2 --> 2
+      thr = sample(1:5, size = 2)
+      ZM[i,] = c(
+        rep(1, 20 - thr[1]),
+        rep(2, 20 - thr[2]),
+        rep(3, 60 - 40 + thr[1] + thr[2])
       )
     }
   }
@@ -58,19 +56,29 @@ simulate_data = function(seed) {
   #### define parameters ####
   mu = rbind(
     "1" = c(-2, -2),
-    "2" = c(0, -2),
-    "3" = c(-1, 0),
-    "4" = c(2, 2)
+    "2" = c(2, 2),
+    "3" = c(0, 3)
   )
 
   sigma = rbind(
     c(1, 1),
-    c(0.5, 0.5),
     c(1, 1),
-    c(0.5, 0.5)
+    c(1, 1)
   )
 
-  epsilon = mu[z, ] + sigma[z, ] * gen_normal_mat(n, K)
+  epsilon = matrix(nrow = n, ncol = K)
+
+  for(i in 1:n_id) {
+
+    f = id == id_unique[i]
+
+    center = mu[z[f],]
+    scale = sigma[z[f],]
+
+    noise =  replicate(K, arima.sim(model = list(ar = 0), n = n_time))
+    epsilon[f, ] = center + scale * noise
+  }
+
   alpha = gen_normal_mat(J, K)
   psi = runif(J, 1, 5)
   psi_matrix  = matrix(psi, nrow = n, ncol = J, byrow = TRUE)

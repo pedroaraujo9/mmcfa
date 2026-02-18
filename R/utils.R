@@ -57,13 +57,18 @@ compute_theta = function(mu, Z, E, K) {
 create_dummy = function(z, G) {
 
   if(G != 1) {
-    Z = model.matrix(~ -1 + factor(z, levels = 1:G))
+    Z = fast_dummy_dense(z, G)
+    #z = factor(z, levels = 1:G)
+    #Z = as.matrix(Matrix::sparse.model.matrix(~ -1 + z))
+
   }else{
     Z = matrix(1, nrow = length(z), ncol = 1)
   }
 
   return(Z)
 }
+
+Matrix::sparse.model.matrix(~ -1 + factor(z)) %>% as.matrix()
 
 filter_chain = function(chain, thin, burn_in) {
 
@@ -254,52 +259,6 @@ gv = c(
 )
 
 utils::globalVariables(gv)
-
-#' Generate Dummy (Indicator) Matrix
-#'
-#' Creates a dummy variable (indicator) matrix for a categorical variable, with an option to include an intercept column.
-#'
-#' @param x Integer vector of categories (1-based).
-#' @param n_cat Integer. Number of categories.
-#' @param intercept Logical. If TRUE, includes an intercept column. Default is FALSE.
-#'
-#' @return Numeric matrix of dummy variables.
-#' @keywords internal
-#' @examples
-#' \dontrun{
-#' gen_dummy(c(1, 2, 3), n_cat = 3, intercept = TRUE)
-#' }
-gen_dummy = function(x, n_cat, intercept = FALSE) {
-
-  x = factor(x, levels = 1:n_cat)
-
-  if(intercept == FALSE) {
-
-    if(n_cat == 1) {
-      X = cbind(rep(1, length(x)))
-
-    }else{
-      X = model.matrix( ~ -1 + x)
-      X = X[1:nrow(X), ]
-    }
-
-  }else{
-
-    if(n_cat == 1) {
-      X = cbind(rep(1, length(x)))
-
-    }else{
-      X = model.matrix( ~ x)
-      X = X[1:nrow(X), ]
-    }
-
-  }
-
-  colnames(X) = NULL
-  rownames(X) = NULL
-
-  return(X)
-}
 
 #' Indices of Non-Penalized Basis Functions
 #'

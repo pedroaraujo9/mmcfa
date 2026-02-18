@@ -17,6 +17,7 @@ create_model_data = function(y,
     id = id,
     time = time
   ) |>
+    mutate(id = factor(id, levels = unique(id))) |>
     dplyr::bind_cols(as.data.frame(y)) |>
     dplyr::arrange(id, time)
 
@@ -32,6 +33,9 @@ create_model_data = function(y,
 
   n_id = length(id_unique)
   n_time = length(time_unique)
+
+  idx = rep((1:n_id)- 1, each = n_time)
+  idx_unique = 0:(n_id-1)
 
   order = 1
   time_seq = time - min(time) + 1
@@ -64,6 +68,7 @@ create_model_data = function(y,
   C = diag(n_time-1)
   C = rbind(C, -1)
 
+  RtR = crossprod(R)
   RR = kronecker(diag(n_id), R)
   Rty = crossprod(RR, y)
 
@@ -80,7 +85,9 @@ create_model_data = function(y,
     data_sd = data_sd,
     center = center,
     scale = scale,
-    var_names = colnames(y)
+    var_names = colnames(y),
+    idx = idx,
+    idx_unique = idx_unique
   )
 
   out$dims = list(
@@ -101,6 +108,7 @@ create_model_data = function(y,
     S_theta = S_theta,
     R = R,
     Rty = Rty,
+    RtR = RtR,
     C = C
   )
 

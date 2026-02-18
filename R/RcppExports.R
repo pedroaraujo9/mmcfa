@@ -13,20 +13,24 @@ sample_theta_i_cpp <- function(y, alpha, prior_mean, prior_precision, psi) {
     .Call(`_mixff_sample_theta_i_cpp`, y, alpha, prior_mean, prior_precision, psi)
 }
 
-cpp_compute_V <- function(X, omega, precision_matrix) {
-    .Call(`_mixff_cpp_compute_V`, X, omega, precision_matrix)
-}
-
-cpp_compute_m <- function(V, X, z, omega, C, center, inv_cov) {
-    .Call(`_mixff_cpp_compute_m`, V, X, z, omega, C, center, inv_cov)
-}
-
 mvrnormArma <- function(n, mu, sigma) {
     .Call(`_mixff_mvrnormArma`, n, mu, sigma)
 }
 
-sample_beta <- function(X, omega, inv_cov, z, C, center) {
-    .Call(`_mixff_sample_beta`, X, omega, inv_cov, z, C, center)
+cpp_compute_V <- function(X, omega, precision_matrix) {
+    .Call(`_mixff_cpp_compute_V`, X, omega, precision_matrix)
+}
+
+cpp_compute_m <- function(V, X, z, omega, C) {
+    .Call(`_mixff_cpp_compute_m`, V, X, z, omega, C)
+}
+
+sample_beta <- function(X, omega, inv_cov, z, C) {
+    .Call(`_mixff_sample_beta`, X, omega, inv_cov, z, C)
+}
+
+sample_beta2 <- function(X, omega, precision_matrix, z, C) {
+    .Call(`_mixff_sample_beta2`, X, omega, precision_matrix, z, C)
 }
 
 logsumexp_cpp <- function(x) {
@@ -41,7 +45,39 @@ post_epsilon_cpp <- function(prec_prior, prec_data, MU_scaled, Rty_alpha_scaled)
     .Call(`_mixff_post_epsilon_cpp`, prec_prior, prec_data, MU_scaled, Rty_alpha_scaled)
 }
 
+utils_comp_epsilon <- function(alpha, alpha_scaled_psi, RtR, Rty) {
+    .Call(`_mixff_utils_comp_epsilon`, alpha, alpha_scaled_psi, RtR, Rty)
+}
+
 post_epsilon_cpp2 <- function(prec_prior, prec_data, MU_scaled, Rty_alpha_scaled) {
     .Call(`_mixff_post_epsilon_cpp2`, prec_prior, prec_data, MU_scaled, Rty_alpha_scaled)
+}
+
+update_epsilon_cpp <- function(alpha, alpha_scaled_psi, RtR, Rty, MU_scaled, inv_sigma, z, idx) {
+    .Call(`_mixff_update_epsilon_cpp`, alpha, alpha_scaled_psi, RtR, Rty, MU_scaled, inv_sigma, z, idx)
+}
+
+update_epsilon_cpp_fast <- function(alpha, alpha_scaled_psi, RtR, Rty, MU_scaled, inv_sigma, z, idx) {
+    .Call(`_mixff_update_epsilon_cpp_fast`, alpha, alpha_scaled_psi, RtR, Rty, MU_scaled, inv_sigma, z, idx)
+}
+
+fast_dummy_dense <- function(x, G) {
+    .Call(`_mixff_fast_dummy_dense`, x, G)
+}
+
+compute_prob_group <- function(B, beta_group, idx) {
+    .Call(`_mixff_compute_prob_group`, B, beta_group, idx)
+}
+
+predict_prob_cpp <- function(M, w, B, beta) {
+    .Call(`_mixff_predict_prob_cpp`, M, w, B, beta)
+}
+
+fast_aggregate_sum <- function(log_pz, id) {
+    .Call(`_mixff_fast_aggregate_sum`, log_pz, id)
+}
+
+update_theta_cpp <- function(epsilon, R, id, id_unique) {
+    .Call(`_mixff_update_theta_cpp`, epsilon, R, id, id_unique)
 }
 

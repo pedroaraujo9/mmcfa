@@ -1,4 +1,4 @@
-update_z = function(epsilon, mu, sigma, w, beta, model_data) {
+update_z = function(epsilon, mu, sigma, w, beta, model_data, add_prob_spline) {
 
   H = ncol(epsilon)
   G = model_data$dims$G
@@ -6,10 +6,6 @@ update_z = function(epsilon, mu, sigma, w, beta, model_data) {
   n = model_data$dims$n
   id = model_data$data$id
   B = model_data$theta_spline$B_theta
-
-  W = create_dummy(w, M)
-  X = kronecker(W, B)
-  prob = mclust::softmax(X %*% beta)
 
   if(G > 1) {
 
@@ -24,7 +20,19 @@ update_z = function(epsilon, mu, sigma, w, beta, model_data) {
 
     }
 
-    ll = ll + log(prob)
+    if(add_prob_spline == TRUE) {
+
+      W = create_dummy(w, M)
+      X = kronecker(W, B)
+      prob = mclust::softmax(X %*% beta)
+      #prob = predict_prob_cpp(M, w, B, beta)
+      ll = ll + log(prob)
+
+    }else{
+
+      ll = ll - log(G)
+
+    }
 
     ll = ll - matrix(
       mclust::logsumexp(ll), nrow = n, ncol = G, byrow = F

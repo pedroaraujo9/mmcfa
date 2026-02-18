@@ -9,15 +9,21 @@ update_chain = function(H,
                         beta,
                         w,
                         pw,
-                        model_data) {
+                        model_data,
+                        add_cluster = TRUE,
+                        add_prob_spline = TRUE,
+                        update_w_params = TRUE,
+                        update_z = TRUE,
+                        update_w = TRUE) {
 
-  epsilon = update_epsilon2(
+  epsilon = update_epsilon(
     mu = mu,
     sigma = sigma,
     alpha = alpha,
     psi = psi,
     z = z,
-    model_data
+    model_data,
+    add_cluster = add_cluster
   )
 
   theta = update_theta(
@@ -32,14 +38,14 @@ update_chain = function(H,
     model_data = model_data
   )
 
-  sigma = update_sigma(
-    epsilon = epsilon,
-    mu = mu,
-    z = z,
-    model_data = model_data,
-    sigma_a = 1,
-    sigma_b = 1
-  )
+  # sigma = update_sigma(
+  #   epsilon = epsilon,
+  #   mu = mu,
+  #   z = z,
+  #   model_data = model_data,
+  #   sigma_a = 1,
+  #   sigma_b = 1
+  # )
 
   alpha = update_alpha(
     theta = cbind(theta[, 1:H]),
@@ -56,33 +62,47 @@ update_chain = function(H,
     b = 1
   )
 
-  z = update_z(
-    epsilon = epsilon,
-    mu = mu,
-    sigma = sigma,
-    w = w,
-    beta = beta,
-    model_data = model_data
-  )
+  if(update_z == TRUE) {
 
-  beta = update_beta(
-    beta = beta,
-    z = z,
-    w = w,
-    model_data = model_data
-  )
+    z = update_z(
+      epsilon = epsilon,
+      mu = mu,
+      sigma = sigma,
+      w = w,
+      beta = beta,
+      model_data = model_data,
+      add_prob_spline = add_prob_spline
+    )
 
-  w = update_w(
-    beta = beta,
-    z = z,
-    pw = pw,
-    model_data = model_data
-  )
+  }
 
-  pw = update_pw(
-    w = w,
-    model_data = model_data
-  )
+  if(update_w_params == TRUE) {
+
+    beta = update_beta(
+      beta = beta,
+      z = z,
+      w = w,
+      model_data = model_data
+    )
+
+    pw = update_pw(
+      w = w,
+      model_data = model_data
+    )
+
+  }
+
+  if(update_w == TRUE) {
+
+    w = update_w(
+      beta = beta,
+      z = z,
+      pw = pw,
+      model_data = model_data
+    )
+
+  }
+
 
   out = list(
     theta = theta,
