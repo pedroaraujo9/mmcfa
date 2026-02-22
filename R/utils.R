@@ -68,8 +68,6 @@ create_dummy = function(z, G) {
   return(Z)
 }
 
-Matrix::sparse.model.matrix(~ -1 + factor(z)) %>% as.matrix()
-
 filter_chain = function(chain, thin, burn_in) {
 
   iters = dim(chain)[1]
