@@ -16,7 +16,7 @@ update_chain = function(H,
                         update_z = TRUE,
                         update_w = TRUE) {
 
-  epsilon = update_epsilon(
+  epsilon = update_epsilon2(
     mu = mu,
     sigma = sigma,
     alpha = alpha,
