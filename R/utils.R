@@ -68,8 +68,6 @@ create_dummy = function(z, G) {
   return(Z)
 }
 
-Matrix::sparse.model.matrix(~ -1 + factor(z)) %>% as.matrix()
-
 filter_chain = function(chain, thin, burn_in) {
 
   iters = dim(chain)[1]
@@ -663,4 +661,20 @@ comp_prior_mean = function(w, beta_theta, B_unique, M) {
 gen_normal_mat = function(n, k) {
   matrix(rnorm(n * k), nrow = n, ncol = k)
 }
+
+compute_probs = function(w, M, B, beta) {
+
+  W = create_dummy(w, M)
+  X = cbind(1, kronecker(W, B))
+  prob = mclust::softmax(X %*% beta)
+
+  return(prob)
+}
+
+
+
+
+
+
+
 

@@ -22,10 +22,7 @@ update_z = function(epsilon, mu, sigma, w, beta, model_data, add_prob_spline) {
 
     if(add_prob_spline == TRUE) {
 
-      W = create_dummy(w, M)
-      X = kronecker(W, B)
-      prob = mclust::softmax(X %*% beta)
-      #prob = predict_prob_cpp(M, w, B, beta)
+      prob = compute_probs(w = w, M = M, B = B, beta = beta)
       ll = ll + log(prob)
 
     }else{

@@ -65,12 +65,15 @@ create_model_data = function(y,
   S_theta[1, 1] = theta_intercept_penalty
 
   R = B_theta %*% solve(t(B_theta) %*% B_theta + S_theta) %*% t(B_theta)
-  C = diag(n_time-1)
-  C = rbind(C, -1)
 
   RtR = crossprod(R)
   RR = kronecker(diag(n_id), R)
   Rty = crossprod(RR, y)
+
+  S_expand = kronecker(diag(M), S_theta)
+  S_expand = rbind(0, S_expand)
+  S_expand = cbind(0, S_expand)
+  S_expand[1, 1] = 0.1
 
   out = list()
 
@@ -109,7 +112,7 @@ create_model_data = function(y,
     R = R,
     Rty = Rty,
     RtR = RtR,
-    C = C
+    S_expand = S_expand
   )
 
   return(out)
