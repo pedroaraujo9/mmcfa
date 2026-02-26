@@ -18,10 +18,10 @@ update_w = function(beta, z, pw, model_data) {
 
   for(m in 1:M) {
 
-    idx = ((m-1)*(n_basis - 1) + 1):(m*(n_basis-1))
+    idx = ((m-1)*(n_basis) + 1):(m*(n_basis))
     beta_group = beta[-1, ][idx, , drop = FALSE]
 
-    prob_group = compute_prob_group(B, rbind(beta[1, ], beta_group), time_seq-1)
+    prob_group = compute_prob_group(cbind(1, B), rbind(beta[1, ], beta_group), time_seq-1)
 
     log_pz = log(rowSums(Z * prob_group))
 

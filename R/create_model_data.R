@@ -70,7 +70,7 @@ create_model_data = function(y,
   RR = kronecker(diag(n_id), R)
   Rty = crossprod(RR, y)
 
-  S_expand = kronecker(diag(M), S_theta[, -1][-1, ])
+  S_expand = kronecker(diag(M), S_theta)
   S_expand = rbind(0, S_expand)
   S_expand = cbind(0, S_expand)
   S_expand[1, 1] = 0.1
