@@ -665,13 +665,13 @@ gen_normal_mat = function(n, k) {
 compute_probs = function(w, M, B, beta) {
 
   W = create_dummy(w, M)
-  X = cbind(1, kronecker(W, B))
+  X = cbind(1, kronecker(W, B[, -1]))
   prob = mclust::softmax(X %*% beta)
 
   return(prob)
 }
 
-
+dim(X)
 
 
 
