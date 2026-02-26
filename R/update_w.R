@@ -15,17 +15,14 @@ update_w = function(beta, z, pw, model_data) {
 
   ll = matrix(nrow = n_id, ncol = M)
 
-  intercept = beta[1, , drop = FALSE]
-  beta = beta[-1, , drop = FALSE]
-  B = cbind(1, B)
 
   for(m in 1:M) {
 
-    idx = ((m-1)*n_basis + 1):(m*n_basis)
-    beta_group = beta[idx, , drop = FALSE]
-    beta_group = rbind(intercept, beta_group)
+    idx = ((m-1)*(n_basis - 1) + 1):(m*(n_basis-1))
+    beta_group = beta[-1, ][idx, , drop = FALSE]
 
-    prob_group = compute_prob_group(B, beta_group, time_seq-1)
+    prob_group = compute_prob_group(B, rbind(beta[1, ], beta_group), time_seq-1)
+
     log_pz = log(rowSums(Z * prob_group))
 
     ll[, m] = fast_aggregate_sum(log_pz, id)[, 1] + log(pw[m])
