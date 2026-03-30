@@ -31,22 +31,6 @@ update_chain = function(H,
     model_data = model_data
   )
 
-  mu = update_mu(
-    epsilon = epsilon,
-    sigma = sigma,
-    z = z,
-    model_data = model_data
-  )
-
-  # sigma = update_sigma(
-  #   epsilon = epsilon,
-  #   mu = mu,
-  #   z = z,
-  #   model_data = model_data,
-  #   sigma_a = 1,
-  #   sigma_b = 1
-  # )
-
   alpha = update_alpha(
     theta = cbind(theta[, 1:H]),
     psi = psi,
@@ -61,6 +45,15 @@ update_chain = function(H,
     a = 1,
     b = 1
   )
+
+  mu = update_mu(
+    epsilon = epsilon,
+    sigma = sigma,
+    z = z,
+    model_data = model_data
+  )
+
+
 
   if(update_z == TRUE) {
 
@@ -94,12 +87,15 @@ update_chain = function(H,
 
   if(update_w == TRUE) {
 
-    w = update_w(
+    w_out = update_w(
       beta = beta,
       z = z,
-      pw = pw,
+      pw = rbind(pw),
       model_data = model_data
     )
+
+    w = w_out$w
+    w_post_prob = w_out$w_post_prob
 
   }
 

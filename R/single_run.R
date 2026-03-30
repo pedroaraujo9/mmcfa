@@ -3,6 +3,7 @@ single_run = function(model_data,
                       burn_in,
                       thin,
                       alpha_prior,
+                      add_prob_spline,
                       seed) {
 
   init_time = Sys.time()
@@ -24,9 +25,13 @@ single_run = function(model_data,
   M = model_data$dims$M
 
   alpha = init_list$alpha
-  z = init_list$z
-  w = init_list$w
-  mu = init_list$mu
+
+  #z = init_list$z
+  #w = init_list$w
+  #mu = init_list$mu
+  z = sample_list$z[1,] / sample_list$z[1,]
+  w = sample_list$w[1,] / sample_list$w[1,]
+  mu = sample_list$mu[1,,]
 
   beta = sample_list$beta[1,,]
   pw = sample_list$w[1,]
@@ -34,20 +39,6 @@ single_run = function(model_data,
   sigma = sample_list$sigma[1,]
   alpha_precision = sample_list$alpha_precision[1,,]
   psi = sample_list$psi[1,]
-
-  # w_init = opt_init(
-  #   iters_opt = 100,
-  #   init_list = init_list,
-  #   sample_list = sample_list,
-  #   model_data = model_data
-  # )
-  #
-  # epsilon = w_init$epsilon
-  # alpha = w_init$alpha
-  # psi = w_init$psi
-  # mu = w_init$mu
-  # beta = w_init$beta
-  # pw = w_init$pw
 
   H = model_data$dims$K
   i = 1
@@ -69,11 +60,11 @@ single_run = function(model_data,
       w = w,
       pw = pw,
       model_data = model_data,
-      add_prob_spline = TRUE,
+      add_prob_spline = add_prob_spline,
       add_cluster = TRUE,
       update_w_params = TRUE,
-      update_z = iter > (burn_in/2),
-      update_w = iter > (burn_in/4)
+      update_z = TRUE,
+      update_w = TRUE
     )
 
     theta = update$theta

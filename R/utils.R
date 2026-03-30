@@ -57,9 +57,8 @@ compute_theta = function(mu, Z, E, K) {
 create_dummy = function(z, G) {
 
   if(G != 1) {
+
     Z = fast_dummy_dense(z, G)
-    #z = factor(z, levels = 1:G)
-    #Z = as.matrix(Matrix::sparse.model.matrix(~ -1 + z))
 
   }else{
     Z = matrix(1, nrow = length(z), ncol = 1)
@@ -665,16 +664,23 @@ gen_normal_mat = function(n, k) {
 compute_probs = function(w, M, B, beta) {
 
   W = create_dummy(w, M)
-  X = cbind(1, kronecker(W, B))
+  X = kronecker(W, B)
+  X[, 1] = 1
   prob = mclust::softmax(X %*% beta)
 
   return(prob)
 }
 
-dim(X)
+plot_cluster = function(run) {
 
+  epsilon = run$sample_list$epsilon %>% compute_post_stat()
+  z = run$sample_list$z %>% comp_class()
 
+  data.frame(epsilon) %>%
+    ggplot(aes(x = X1, y = X2, color = factor(z))) +
+    geom_point()
 
+}
 
 
 

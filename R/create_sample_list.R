@@ -138,7 +138,7 @@ create_sample_list = function(iters = 1000,
   #### global clustering parameters ####
   sample_list$beta = gen_sample_array(
     iters = iters,
-    dimension = c(M*(n_basis) + 1, G),
+    dimension = c(M*(n_basis), G),
     sampler = function(x) rnorm(x, sd = 0.01),
     init = init_list$beta
   )
