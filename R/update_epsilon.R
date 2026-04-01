@@ -1,4 +1,4 @@
-update_epsilon = function(mu, sigma, alpha, psi, z, model_data, add_cluster = TRUE) {
+update_epsilon = function(mu, sigma, alpha, psi, z, model_data) {
 
   # dimensions
   H = ncol(alpha)
@@ -26,16 +26,7 @@ update_epsilon = function(mu, sigma, alpha, psi, z, model_data, add_cluster = TR
   inv_SIGMA = matrix(inv_sigma, nrow = n, ncol = H, byrow = FALSE)
 
   # variability from clusters
-  if(add_cluster == TRUE) {
-
-    MU_scaled = mu[z, ] * inv_SIGMA
-
-  }else{
-
-    MU_scaled = matrix(0, nrow = n, ncol = H)
-
-  }
-
+  MU_scaled = mu[z, ] * inv_SIGMA
 
   # sampling
   epsilon = matrix(nrow = n, ncol = H)
@@ -54,18 +45,16 @@ update_epsilon = function(mu, sigma, alpha, psi, z, model_data, add_cluster = TR
 
     post_center = post_cov %*% as.vector(MU_scaled[z_i, ] + Rty_alpha_scaled[id == id_i, ])
     epsilon_i_vec = post_center + V %*% rnorm(n_time * H)
-
-    # epsilon_i_vec = epsilon_i_vec - post_cov %*% t(RR) %*% (one) %*% (1/(t(one) %*% RR %*% post_cov %*% t(RR) %*% one)) %*% t(one) %*% RR %*% epsilon_i_vec
-
     epsilon_i = matrix(epsilon_i_vec, nrow = n_time, ncol = H, byrow = FALSE)
     epsilon[id == id_i, ] = epsilon_i
+
   }
 
   return(epsilon)
 
 }
 
-update_epsilon2 = function(mu, sigma, alpha, psi, z, model_data, add_cluster = TRUE) {
+update_epsilon2 = function(mu, sigma, alpha, psi, z, model_data) {
 
   # dimensions
   H = ncol(alpha)
@@ -98,17 +87,7 @@ update_epsilon2 = function(mu, sigma, alpha, psi, z, model_data, add_cluster = T
   # variability from clusters
   inv_sigma = (1/sigma[z])^2
   inv_SIGMA = matrix(inv_sigma, nrow = n, ncol = H, byrow = FALSE)
-
-  if(add_cluster == TRUE) {
-
-
-    MU_scaled = mu[z, ] * inv_SIGMA
-
-  }else{
-
-    MU_scaled = matrix(0, nrow = n, ncol = H)
-
-  }
+  MU_scaled = mu[z, ] * inv_SIGMA
 
   # sampling
   epsilon = matrix(nrow = n, ncol = H)

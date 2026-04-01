@@ -33,7 +33,7 @@ create_sample_list = function(iters = 1000,
   alpha_precision = gen_sample_array(
     iters = iters,
     dimension = c(J, K),
-    sampler = function(x) rgamma(x, shape = 1, rate = 1),
+    sampler = function(x) 1,
     init = init_list$alpha_precision
   )
 

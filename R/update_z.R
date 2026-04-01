@@ -20,16 +20,8 @@ update_z = function(epsilon, mu, sigma, w, beta, model_data, add_prob_spline) {
 
     }
 
-    if(add_prob_spline == TRUE) {
-
-      prob = compute_probs(w = w, M = M, B = B, beta = beta)
-      ll = ll + log(prob)
-
-    }else{
-
-      ll = ll - log(G)
-
-    }
+    prob = compute_probs(w = w, M = M, B = B, beta = beta)
+    ll = ll + log(prob)
 
     ll = ll - matrix(
       mclust::logsumexp(ll), nrow = n, ncol = G, byrow = F

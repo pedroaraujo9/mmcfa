@@ -10,20 +10,17 @@ update_chain = function(H,
                         w,
                         pw,
                         model_data,
-                        add_cluster = TRUE,
-                        add_prob_spline = TRUE,
-                        update_w_params = TRUE,
-                        update_z = TRUE,
-                        update_w = TRUE) {
+                        alpha_fixed = FALSE,
+                        z_fixed = FALSE,
+                        w_fixed = FALSE) {
 
-  epsilon = update_epsilon(
+  epsilon = update_epsilon2(
     mu = mu,
     sigma = sigma,
     alpha = alpha,
     psi = psi,
     z = z,
-    model_data,
-    add_cluster = add_cluster
+    model_data
   )
 
   theta = update_theta(
@@ -31,12 +28,17 @@ update_chain = function(H,
     model_data = model_data
   )
 
-  alpha = update_alpha(
-    theta = cbind(theta[, 1:H]),
-    psi = psi,
-    prior_precision = cbind(alpha_precision[, 1:H]),
-    model_data = model_data
-  )
+  if(alpha_fixed == FALSE) {
+
+    alpha = update_alpha(
+      theta = cbind(theta[, 1:H]),
+      psi = psi,
+      prior_precision = cbind(alpha_precision[, 1:H]),
+      model_data = model_data
+    )
+
+  }
+
 
   psi = update_psi(
     theta = cbind(theta[, 1:H]),
@@ -53,9 +55,19 @@ update_chain = function(H,
     model_data = model_data
   )
 
+  beta = update_beta(
+    beta = beta,
+    z = z,
+    w = w,
+    model_data = model_data
+  )
 
+  pw = update_pw(
+    w = w,
+    model_data = model_data
+  )
 
-  if(update_z == TRUE) {
+  if(z_fixed == FALSE) {
 
     z = update_z(
       epsilon = epsilon,
@@ -69,23 +81,7 @@ update_chain = function(H,
 
   }
 
-  if(update_w_params == TRUE) {
-
-    beta = update_beta(
-      beta = beta,
-      z = z,
-      w = w,
-      model_data = model_data
-    )
-
-    pw = update_pw(
-      w = w,
-      model_data = model_data
-    )
-
-  }
-
-  if(update_w == TRUE) {
+  if(w_fixed == FALSE) {
 
     w_out = update_w(
       beta = beta,
@@ -98,7 +94,6 @@ update_chain = function(H,
     w_post_prob = w_out$w_post_prob
 
   }
-
 
   out = list(
     theta = theta,
