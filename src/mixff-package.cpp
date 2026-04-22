@@ -436,6 +436,35 @@ arma::mat update_theta_cpp(const arma::mat& epsilon,
   return theta;
 }
 
+// [[Rcpp::export]]
+arma::mat compute_ll(arma::mat epsilon, arma::mat Rn, arma::mat mu, arma::mat U, arma::mat Z) {
+  int n = epsilon.n_rows;
+  int G = mu.n_rows;
+
+  arma::mat ll(n, G);
+
+  // Precompute the full RZ with current Z (all rows)
+  arma::mat RZ_full = Rn * Z * mu;  // n x K
+
+  for (int i = 0; i < n; i++) {
+    // Remove contribution of current row i from RZ
+    // When we change Z.row(i), only Rn.col(i) * Z.row(i) * mu changes
+    // RZ_without_i = RZ_full - Rn.col(i) * Z.row(i) * mu
+    arma::mat RZ_without_i = RZ_full - Rn.col(i) * Z.row(i) * mu;  // n x K
+
+    for (int g = 0; g < G; g++) {
+      // Tentatively set Z.row(i) = e_g (one-hot)
+      // New RZ = RZ_without_i + Rn.col(i) * mu.row(g)
+      arma::mat RZ = RZ_without_i + Rn.col(i) * mu.row(g);  // n x K
+
+      arma::mat center = epsilon - RZ;
+      ll(i, g) = -0.5 * arma::trace(center.t() * U * center);
+    }
+  }
+
+  return ll;
+}
+
 // arma::mat update_epsilon_t(const arma::mat& R,
 //                            const arma::mat& epsilon,
 //                            const arma::mat& alpha,

@@ -1,7 +1,7 @@
 update_mu = function(epsilon, z, sigma, model_data) {
 
   G = model_data$dims$G
-  H = ncol(epsilon)
+  H = model_data$dims$K
 
   mu = matrix(0, nrow = G, ncol = H)
 
@@ -11,20 +11,17 @@ update_mu = function(epsilon, z, sigma, model_data) {
 
     if(ng == 0) {
 
-      mu[g, ] = rnorm(H, 0, 1)
+      mu[g, ] = rnorm(H, mean = 0, sd = 1)
 
     } else {
 
       epsilon_bar = colMeans(epsilon[z == g, , drop = FALSE])
+      prec = 1/(sigma[g, ]^2)
 
-      data_prec  = ng / (sigma[g]^2)
-      prior_prec = 1
+      nu = 1 / (1 + ng/prec)
+      m = nu * epsilon_bar * (ng/prec)
+      mu[g, ] = rnorm(H, m, sqrt(nu))
 
-      post_prec = data_prec + prior_prec
-      post_var  = 1 / post_prec
-      post_mean = post_var * data_prec * epsilon_bar
-
-      mu[g, ] = rnorm(H, post_mean, sqrt(post_var))
     }
   }
 

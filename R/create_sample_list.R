@@ -13,7 +13,7 @@ create_sample_list = function(iters = 1000,
   M = model_data$dims$M
   n_id = model_data$dims$n_id
   n_basis = model_data$theta_spline$n_basis
-
+  n_time = model_data$dims$n_time
   id_unique = model_data$data$id_unique
   alpha_prior = match.arg(alpha_prior, choices = c("normal", "cusp"))
 
@@ -37,11 +37,25 @@ create_sample_list = function(iters = 1000,
     init = init_list$alpha_precision
   )
 
+  log_accept_prob = gen_sample_array(
+    iters = iters,
+    dimension = c(n_id),
+    sampler = function(x) 0,
+    init = NULL
+  )
+
   theta = epsilon = gen_sample_array(
     iters = iters,
     dimension = c(n, K),
     sampler = function(x) rnorm(x, sd = 0.01),
     init = init_list$theta
+  )
+
+  sigma_theta = gen_sample_array(
+    iters = iters,
+    dimension = c(K),
+    sampler = function(x) 1,
+    init = init_list$sigma_theta
   )
 
   psi = gen_sample_array(
@@ -56,7 +70,9 @@ create_sample_list = function(iters = 1000,
     alpha_precision = alpha_precision,
     theta = theta,
     epsilon = epsilon,
-    psi = psi
+    psi = psi,
+    sigma_theta = sigma_theta,
+    log_accept_prob = log_accept_prob
   )
 
   #### CUSP parameters ####
@@ -88,7 +104,14 @@ create_sample_list = function(iters = 1000,
       iters = iters,
       dimension = c(1),
       sampler = function(x) K,
-      init = init_list$H_active
+      init = NULL
+    )
+
+    sample_list$H = gen_sample_array(
+      iters = iters,
+      dimension = c(1),
+      sampler = function(x) K,
+      init = NULL
     )
 
     sample_list$H_effective = gen_sample_array(
@@ -104,13 +127,27 @@ create_sample_list = function(iters = 1000,
   sample_list$mu = gen_sample_array(
     iters = iters,
     dimension = c(G, K),
-    sampler = function(x) rnorm(x, sd = 0.01),
+    sampler = function(x) 0,
     init = init_list$mu
+  )
+
+  sample_list$sigma_mu = gen_sample_array(
+    iters = iters,
+    dimension = c(G),
+    sampler = function(x) 1,
+    init = init_list$sigma_mu
   )
 
   sample_list$sigma = gen_sample_array(
     iters = iters,
-    dimension = c(G),
+    dimension = n_id,
+    sampler = function(x) 1,
+    init = init_list[["sigma"]]
+  )
+
+  sample_list$sigma_state = gen_sample_array(
+    iters = iters,
+    dimension = c(n_id, G),
     sampler = function(x) 1,
     init = init_list$sigma
   )
@@ -122,9 +159,25 @@ create_sample_list = function(iters = 1000,
     init = init_list$z
   )
 
+  sample_list$logP = gen_sample_array(
+    iters = iters,
+    dimension = c(n, G),
+    sampler = function(x) 0,
+    init = NULL
+  )
+
+  sample_list$z_w = a = gen_sample_array(
+    iters = iters,
+    dimension = c(M, n_time),
+    sampler = function(x) sample(1:G, size = n_time, replace = T),
+    init = init_list$z_w
+  )
+
+  dim_pz = c(G)
+
   sample_list$pz = gen_sample_array(
     iters = iters,
-    dimension = c(G),
+    dimension = dim_pz,
     sampler = function(x) rep(1/G, G),
     init = init_list$pz
   )

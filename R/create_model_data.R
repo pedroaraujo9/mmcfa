@@ -11,7 +11,11 @@ create_model_data = function(y,
                              theta_spline_penalty = 1,
                              z_intercept_penalty = 1,
                              z_spline_penalty = 1,
-                             w_dirichlet = 1) {
+                             w_dirichlet = 1,
+                             cusp_nu = 2,
+                             cusp_a = 1,
+                             cusp_b = 1,
+                             cusp_min_var = 0.05) {
 
   data = data.frame(
     id = id,
@@ -54,23 +58,33 @@ create_model_data = function(y,
 
   theta_basis_funcions = create_basis_matrix(
     n_basis = n_basis,
-    # time = c(min(time_seq_unique) - (1:2), time_seq_unique, max(time_seq_unique) + 1:2)
     time = time_seq_unique
   )
 
   B_theta = theta_basis_funcions$model_matrix
-  # B_theta = B_theta[-c(1:2, nrow(B_theta) - (1:2)), ]
   S_theta = theta_basis_funcions$nD
   S_theta = S_theta * theta_spline_penalty
   S_theta[1, 1] = theta_intercept_penalty
-
-  R = B_theta %*% solve(t(B_theta) %*% B_theta + S_theta) %*% t(B_theta)
-
-  RtR = crossprod(R)
-  RR = kronecker(diag(n_id), R)
-  Rty = crossprod(RR, y)
-
   S_expand = kronecker(diag(M), S_theta)
+  noise = 1
+
+  B_n = kronecker(diag(n_id), B_theta)
+  S_n = kronecker(diag(n_id), S_theta)
+
+  Ri = B_theta %*% solve(t(B_theta) %*% B_theta + S_theta) %*% t(B_theta)
+  # Ri = 0.5 * Ri + (1-0.5) * diag(n_time)
+
+  R = kronecker(diag(n_id), Ri)
+  Ry = R %*% y
+  RtR_i = crossprod(Ri)
+  Ri_inv = solve(Ri + diag(noise, n_time))
+  R_inv = kronecker(diag(n_id), Ri_inv)
+
+  RRt_inv_i = solve(RtR_i + diag(noise, n_time))
+  RRt_inv = kronecker(diag(n_id), RRt_inv_i)
+  R = Matrix::bdiag(R)
+  RRt_inv = Matrix::bdiag(RRt_inv)
+
 
   out = list()
 
@@ -100,16 +114,31 @@ create_model_data = function(y,
     M = M
   )
 
+  out$cusp = list(
+    nu = cusp_nu,
+    a = cusp_a,
+    b = cusp_b,
+    min_var = cusp_min_var
+  )
+
   out$theta_spline = list(
     n_basis = n_basis,
     theta_intercept_penalty = theta_intercept_penalty,
     theta_spline_penalty = theta_spline_penalty,
     B_theta = B_theta,
     S_theta = S_theta,
+    Ri = Ri,
     R = R,
-    Rty = Rty,
-    RtR = RtR,
-    S_expand = S_expand
+    Ry = Ry,
+    RtR_i = RtR_i,
+    Ri_inv = Ri_inv,
+    R_inv = R_inv,
+    RRt_inv_i = RRt_inv_i,
+    RRt_inv = RRt_inv,
+    B_n = B_n,
+    S_n = S_n,
+    S_expand = S_expand,
+    w_dirichlet = w_dirichlet
   )
 
   return(out)

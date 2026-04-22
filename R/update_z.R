@@ -1,4 +1,14 @@
-update_z = function(epsilon, mu, sigma, w, beta, model_data, add_prob_spline) {
+update_z = function(epsilon,
+                    mu,
+                    sigma,
+                    alpha,
+                    psi,
+                    pz,
+                    w,
+                    beta,
+                    model_data,
+                    mixscat_prior,
+                    integrate = FALSE) {
 
   H = ncol(epsilon)
   G = model_data$dims$G
@@ -6,6 +16,9 @@ update_z = function(epsilon, mu, sigma, w, beta, model_data, add_prob_spline) {
   n = model_data$dims$n
   id = model_data$data$id
   B = model_data$theta_spline$B_theta
+  #R = model_data$theta_spline$R
+  #S = (R %*% t(R)) + diag(1, n_time)
+  # s = matrix(sqrt(rep(diag(S), model_data$dims$n_id)), nrow = n, ncol = H, byrow = FALSE)
 
   if(G > 1) {
 
@@ -13,14 +26,39 @@ update_z = function(epsilon, mu, sigma, w, beta, model_data, add_prob_spline) {
 
     for(g in 1:G) {
 
-      avg = matrix(mu[g, ], nrow = n, ncol = H, byrow = T)
-      std = matrix(sigma[g], nrow = n, ncol = H)
+      if(integrate == FALSE) {
 
-      ll[, g] = dnorm(epsilon, mean = avg, sd = std, log = T) |> rowSums()
+        avg = matrix(mu[g, ], nrow = n, ncol = H, byrow = T)
+        # ll[, g] = dnorm(epsilon, mean = avg, sd = sigma[g], log = T) |> rowSums()
+        ll[, g] = dnorm(epsilon, mean = avg, sd = 1, log = T) |> rowSums()
+
+      }else{
+
+        ll[, g] = mvtnorm::dmvnorm(
+          x = model_data$data$y,
+          mean = mu[g, ] %*% t(alpha),
+          sigma = (sigma[g]^2) * tcrossprod(alpha) + diag(psi),
+          log = TRUE
+        )
+
+
+      }
+
+
 
     }
 
-    prob = compute_probs(w = w, M = M, B = B, beta = beta)
+    if(mixscat_prior == TRUE) {
+
+      prob = compute_probs(w = w, M = M, B = B, beta = beta)
+
+    }else{
+
+      prob = matrix(pz, nrow = n, ncol = G, byrow = T)
+
+    }
+
+
     ll = ll + log(prob)
 
     ll = ll - matrix(

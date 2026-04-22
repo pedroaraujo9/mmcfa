@@ -1,4 +1,12 @@
-update_w = function(beta, z, pw, model_data) {
+update_w = function(beta,
+                    z,
+                    pw,
+                    theta,
+                    mu,
+                    sigma,
+                    model_data,
+                    w_prior,
+                    smooth) {
 
   G = model_data$dims$G
   M = model_data$dims$M
@@ -9,11 +17,17 @@ update_w = function(beta, z, pw, model_data) {
   id = model_data$data$id
   id = factor(id, levels = id_unique)
   time_seq = model_data$data$time_seq
-  B = model_data$theta_spline$B
+  B = model_data$theta_spline$B_theta
+  R = model_data$theta_spline$R
 
   Z = create_dummy(z, G)
+  log_w_post_prob = matrix(nrow = n_id, ncol = M)
 
-  w_post_prob = matrix(nrow = n_id, ncol = M)
+  if(!is.null(w_prior)) {
+    pw = w_prior
+  }else{
+    pw = matrix(as.numeric(pw), nrow = 1, ncol = M)
+  }
 
   for(m in 1:M) {
 
@@ -28,23 +42,29 @@ update_w = function(beta, z, pw, model_data) {
       beta_group = rbind(beta[1, ], beta[idx, ])
       prob_group = compute_prob_group(cbind(1, B), beta_group, time_seq-1)
 
+      #beta_group = beta[idx, ]
+      #prob_group = compute_prob_group(B, beta_group, time_seq-1)
+
     }
 
     log_pz = log(rowSums(Z * prob_group))
-
-    w_post_prob[, m] = exp(fast_aggregate_sum(log_pz, id)[, 1]) * pw[, m]
+    log_pz_id = as.numeric(rowsum(log_pz, id))
+    log_w_post_prob[, m] = log_pz_id + log(pw[, m] + 1e-300)
 
   }
 
-  w_post_prob = w_post_prob / rowSums(w_post_prob)
+  log_w_post_prob = norm_mat(log_w_post_prob)
+  w_post_prob = exp(log_w_post_prob)
 
-  w = as.integer(extraDistr::rcat(n = n_id, prob = w_post_prob))
+  w = sample_cat(log_w_post_prob)
   names(w) = id_unique
+
   out = list(w = w, w_post_prob = w_post_prob)
 
   return(out)
 
 }
+
 
 
 update_w2 = function(beta, z, pw, model_data) {

@@ -57,10 +57,11 @@ create_init_values = function(model_data) {
 
 }
 
-smooth_theta = function(theta, id, time, n_basis = 10) {
-
-  id_unique = unique(id)
-  n_id = length(id_unique)
+generate_R = function(time,
+                      n_basis = 10,
+                      add_penalty = TRUE,
+                      spline_penalty = 1,
+                      spline_intercept_penalty = 1) {
 
   theta_basis_funcions = create_basis_matrix(
     n_basis = n_basis,
@@ -69,10 +70,25 @@ smooth_theta = function(theta, id, time, n_basis = 10) {
 
   B_theta = theta_basis_funcions$model_matrix
   S_theta = theta_basis_funcions$nD
-  S_theta = S_theta * 1
-  S_theta[1, 1] = 1
+  S_theta = S_theta * spline_penalty
+  S_theta[1, 1] = spline_intercept_penalty
 
-  R = B_theta %*% solve(t(B_theta) %*% B_theta + S_theta) %*% t(B_theta)
+  if(add_penalty == TRUE) {
+    R = B_theta %*% solve(t(B_theta) %*% B_theta + S_theta) %*% t(B_theta)
+  }else{
+    R = B_theta %*% solve(t(B_theta) %*% B_theta) %*% t(B_theta)
+  }
+
+  return(R)
+
+}
+
+smooth_theta = function(theta, id, time, n_basis = 10, spline_penalty = 1) {
+
+  id_unique = unique(id)
+  n_id = length(id_unique)
+
+  R = generate_R(time = time, n_basis = n_basis, spline_penalty = spline_penalty)
 
   theta_smooth = theta
 
@@ -128,7 +144,7 @@ find_init_z = function(theta, G_max) {
   G = 1 + which.max(asw)
   z = kmeans(theta, centers = G, iter.max = 100, nstart = 100)$cluster
 
-  out = list(z = z, G = G)
+  out = list(z = z, G = G, asw = asw)
   return(out)
 
 }
@@ -149,7 +165,7 @@ find_init_w = function(z_seq, M_max) {
   w = hclust(d_seq, method = "ward.D") |> cutree(k = M)
   names(w) = unique(id)
 
-  out = list(w = w, M = M)
+  out = list(w = w, M = M, asw_seq = asw_seq)
   return(out)
 
 }
@@ -162,27 +178,31 @@ create_init_values2 = function(y, id, time, K_max, G_max, M_max, n_basis) {
   fa_init = find_init_FA(
     y = y, K_max = K_max, time = time, id = id, n_basis = n_basis
   )
+
   alpha = fa_init$alpha
   theta = fa_init$theta
 
-  z_init = find_init_z(theta, G_max)
-  G = z_init$G
-  z = z_init$z
-  z_seq = z |>
-    matrix(nrow = n_id, ncol = n_time, byrow = T) |>
-    TraMineR::seqdef() |>
-    suppressMessages()
-
-  w_init = find_init_w(z_seq = z_seq, M_max = M_max)
-  M = w_init$M
-  w = w_init$w
+  # z_init = find_init_z(theta, G_max)
+  # G = z_init$G
+  # z = z_init$z
+  # z_seq = z |>
+  #   matrix(nrow = n_id, ncol = n_time, byrow = T) |>
+  #   TraMineR::seqdef() |>
+  #   suppressMessages()
+  #
+  # w_init = find_init_w(z_seq = z_seq, M_max = M_max)
+  # M = w_init$M
+  # w = w_init$w
 
   out = list(
     alpha = alpha,
-    w = w,
-    z = z,
-    G = G,
-    M = M
+    theta = theta #,
+    # w = w,
+    # z = z,
+    # G = G,
+    # M = M,
+    # asw = z_init$asw,
+    # asw_seq = w_init$asw_seq
   )
 
   return(out)

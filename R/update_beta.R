@@ -36,7 +36,7 @@ update_beta = function(beta,
 
   W = create_dummy(w, M)
   X = kronecker(W, B)
-  X[, 1] = 1
+  # X[, 1] = 1
 
   Z = create_dummy(z, G)
 

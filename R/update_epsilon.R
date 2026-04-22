@@ -1,4 +1,4 @@
-update_epsilon = function(mu, sigma, alpha, psi, z, model_data) {
+update_epsilon = function(mu, alpha, psi, z, model_data) {
 
   # dimensions
   H = ncol(alpha)
@@ -19,14 +19,15 @@ update_epsilon = function(mu, sigma, alpha, psi, z, model_data) {
   inv_psi_matrix = matrix(1/psi, nrow = J, ncol = H, byrow = FALSE)
   alpha_scaled_psi = alpha * inv_psi_matrix
   alphat_psi_alpha = crossprod(alpha_scaled_psi, alpha)
-  prec_data = kronecker(alphat_psi_alpha, RtR)
   Rty_alpha_scaled = Rty %*% alpha_scaled_psi
 
-  inv_sigma = (1/sigma[z])^2
-  inv_SIGMA = matrix(inv_sigma, nrow = n, ncol = H, byrow = FALSE)
+  prec_data = kronecker(alphat_psi_alpha, RtR)
+
+  #inv_sigma = (1/sigma[z])^2
+  #inv_SIGMA = matrix(inv_sigma, nrow = n, ncol = H, byrow = FALSE)
 
   # variability from clusters
-  MU_scaled = mu[z, ] * inv_SIGMA
+  MU_scaled = mu[z, ] #* inv_SIGMA
 
   # sampling
   epsilon = matrix(nrow = n, ncol = H)
@@ -37,8 +38,7 @@ update_epsilon = function(mu, sigma, alpha, psi, z, model_data) {
     y_i = y[id == id_i, ]
     z_i = z[id == id_i]
 
-    Sigma = diag(1/(sigma[z_i]^2))
-    prec_prior = kronecker(diag(H), Sigma)
+    prec_prior = diag(H * n_time)
 
     post_cov = solve(prec_prior + prec_data)
     V = t(chol(post_cov))
@@ -54,7 +54,7 @@ update_epsilon = function(mu, sigma, alpha, psi, z, model_data) {
 
 }
 
-update_epsilon2 = function(mu, sigma, alpha, psi, z, model_data) {
+update_epsilon2 = function(mu, sigma, alpha, psi, z, model_data, smooth = TRUE) {
 
   # dimensions
   H = ncol(alpha)
@@ -62,6 +62,7 @@ update_epsilon2 = function(mu, sigma, alpha, psi, z, model_data) {
   n_time = model_data$dims$n_time
   n = model_data$dims$n
   n_id = model_data$dims$n_id
+  G = model_data$dims$G
 
   # data
   y = model_data$data$y
@@ -71,44 +72,74 @@ update_epsilon2 = function(mu, sigma, alpha, psi, z, model_data) {
   Rty = model_data$theta_spline$Rty
   RtR = model_data$theta_spline$RtR
 
-  # variability from data
-  alpha_scaled_psi = alpha * matrix(1/psi, nrow = J, ncol = H, byrow = FALSE)
+  if(smooth == TRUE) {
+    # variability from data
+    alpha_scaled_psi = alpha * matrix(1/psi, nrow = J, ncol = H, byrow = FALSE)
 
-  mats = utils_comp_epsilon(
-    alpha = alpha,
-    alpha_scaled_psi = alpha_scaled_psi,
-    RtR = RtR,
-    Rty = Rty
-  )
-
-  prec_data = mats$prec_data
-  Rty_alpha_scaled = mats$Rty_alpha_scaled
-
-  # variability from clusters
-  inv_sigma = (1/sigma[z])^2
-  inv_SIGMA = matrix(inv_sigma, nrow = n, ncol = H, byrow = FALSE)
-  MU_scaled = mu[z, ] * inv_SIGMA
-
-  # sampling
-  epsilon = matrix(nrow = n, ncol = H)
-
-  for(i in 1:n_id) {
-
-    id_i = id_unique[i]
-    f = (id_i == id)
-    z_i = z[f]
-
-    prec_prior = diag(rep(inv_SIGMA[f, 1], times = H))
-
-    epsilon_i_vec = post_epsilon_cpp2(
-      prec_prior = prec_prior,
-      prec_data = prec_data,
-      MU_scaled = MU_scaled[f, ],
-      Rty_alpha_scaled =  Rty_alpha_scaled[f, ]
+    mats = utils_comp_epsilon(
+      alpha = alpha,
+      alpha_scaled_psi = alpha_scaled_psi,
+      RtR = RtR,
+      Rty = Rty
     )
 
-    epsilon_i = matrix(epsilon_i_vec, nrow = n_time, ncol = H, byrow = FALSE)
-    epsilon[f, ] = epsilon_i
+    prec_data = mats$prec_data
+    Rty_alpha_scaled = mats$Rty_alpha_scaled
+
+    # variability from clusters
+    # inv_sigma = (1/sigma[z])^2
+    # inv_SIGMA = matrix(inv_sigma, nrow = n, ncol = H, byrow = FALSE)
+    I_prior = diag(H * n_time)
+    MU_scaled = mu[z, ] #  * inv_SIGMA
+
+    # sampling
+    epsilon = matrix(nrow = n, ncol = H)
+
+    for(i in 1:n_id) {
+
+      id_i = id_unique[i]
+      f = (id_i == id)
+      z_i = z[f]
+
+      prec_prior = I_prior #diag(rep(inv_SIGMA[f, 1], times = H))
+
+      epsilon_i_vec = post_epsilon_cpp2(
+        prec_prior = prec_prior,
+        prec_data = prec_data,
+        MU_scaled = MU_scaled[f, ],
+        Rty_alpha_scaled =  Rty_alpha_scaled[f, ]
+      )
+
+      epsilon_i = matrix(epsilon_i_vec, nrow = n_time, ncol = H, byrow = FALSE)
+      epsilon[f, ] = epsilon_i
+
+    }
+
+  }else{
+
+    epsilon = matrix(nrow = n, ncol = H)
+    alpha_scaled_psi = alpha * matrix(1/psi, nrow = J, ncol = H, byrow = FALSE)
+    A = crossprod(alpha_scaled_psi, alpha)
+    mu_matrix = mu[z, ]
+    noise = gen_normal_mat(n, H)
+
+    for(g in 1:G) {
+
+      if(sum(z == g) > 0) {
+
+        precision = 1 / (sigma[g]^2)
+        V = solve(A + diag(precision, H))
+        m = (mu_matrix[z == g, ] * precision + y[z == g, ] %*% alpha_scaled_psi) %*% V
+        epsilon[z == g, ] = m + noise[z == g, ] %*% t(chol(V))
+
+      }
+
+    }
+
+
+    #V = solve(A + diag(1/(sigma^2)))
+    #m = (mu[z, ] + y %*% alpha_scaled_psi) %*% V
+    #epsilon = m + gen_normal_mat(n, H) %*% t(chol(V))
 
   }
 
@@ -166,17 +197,102 @@ update_epsilon_exp1 = function(mu, sigma, alpha, psi, z, model_data, add_cluster
 
 }
 
-# microbenchmark::microbenchmark(
-#
-#   current = update_epsilon2(
-#     mu, sigma, alpha, psi, z, model_data, add_cluster = T
-#   ),
-#
-#   ind = update_epsilon_exp1(
-#     mu, sigma, alpha, psi, z, model_data, add_cluster = T
-#   ),
-#
-#   times = 100
-# )
+update_epsilon3 = function(mu, sigma, alpha, psi, z, model_data, smooth = TRUE, add_cluster = TRUE) {
+
+  # dimensions
+  H = ncol(alpha)
+  J = model_data$dims$J
+  n_time = model_data$dims$n_time
+  n = model_data$dims$n
+  n_id = model_data$dims$n_id
+  G = model_data$dims$G
+
+  # data
+  y = model_data$data$y
+  id = model_data$data$id
+  id_unique = model_data$data$id_unique
+  I_time = diag(n_time)
+  R = model_data$theta_spline$R
+  S = solve(R + diag(1, n_time))
+
+  Q = S
+
+  if(smooth == TRUE) {
+
+    # variability from data
+    alpha_scaled_psi = alpha * matrix(1/psi, nrow = J, ncol = H, byrow = FALSE)
+    talpha_psi_alpha = crossprod(alpha_scaled_psi, alpha)
+    prec_data = kronecker(talpha_psi_alpha, I_time)
+
+    prec_prior = kronecker(diag(H), Q)
+
+    post_cov = solve(prec_prior + prec_data)
+    V = t(chol(post_cov))
+
+    ty_alpha_scaled = y %*% alpha_scaled_psi
+
+    # sampling
+    epsilon = matrix(nrow = n, ncol = H)
+
+    if(add_cluster == FALSE) {
+      mu = matrix(0, nrow = G, ncol = H)
+    }
+
+    for(i in 1:n_id) {
+
+      id_i = id_unique[i]
+      y_i = y[id == id_i, ]
+      z_i = z[id == id_i]
+
+      post_center = post_cov %*% as.vector(Q %*% mu[z_i, ] + ty_alpha_scaled[id == id_i, ])
+      epsilon_i_vec = post_center + V %*% rnorm(n_time * H)
+
+      epsilon_i = matrix(epsilon_i_vec, nrow = n_time, ncol = H, byrow = FALSE)
+      epsilon[id == id_i, ] = epsilon_i
+
+    }
+
+  }else{
+
+    epsilon = matrix(nrow = n, ncol = H)
+    alpha_scaled_psi = alpha * matrix(1/psi, nrow = J, ncol = H, byrow = FALSE)
+    A = crossprod(alpha_scaled_psi, alpha)
+    noise = gen_normal_mat(n, H)
+
+    if(add_cluster == TRUE) {
+
+      precision = 1 / (sigma^2)
+      mu_matrix = mu[z, ] * matrix(precision[z], nrow = n, ncol = H, byrow = F)
+
+    }else{
+
+      precision = rep(1, G)
+      mu_matrix = matrix(0, nrow = n, ncol = H)
+
+    }
+
+    for(g in 1:G) {
+
+      if(sum(z == g) > 0) {
+
+
+        V = solve(A + diag(precision[g], H))
+        m = (mu_matrix[z == g, ] + y[z == g, ] %*% alpha_scaled_psi) %*% V
+        epsilon[z == g, ] = m + noise[z == g, ] %*% t(chol(V))
+
+      }
+
+    }
+
+
+    #V = solve(A + diag(1/(sigma^2)))
+    #m = (mu[z, ] + y %*% alpha_scaled_psi) %*% V
+    #epsilon = m + gen_normal_mat(n, H) %*% t(chol(V))
+
+  }
+
+  return(epsilon)
+
+}
 
 

@@ -671,16 +671,82 @@ compute_probs = function(w, M, B, beta) {
   return(prob)
 }
 
-plot_cluster = function(run) {
+plot_cluster = function(run, dims = c(1, 2)) {
 
-  epsilon = run$sample_list$epsilon %>% compute_post_stat()
+  epsilon = run$sample_list$epsilon %>% compute_post_stat() %>% cbind()
   z = run$sample_list$z %>% comp_class()
 
-  data.frame(epsilon) %>%
+  data.frame(epsilon[, dims]) %>%
     ggplot(aes(x = X1, y = X2, color = factor(z))) +
     geom_point()
 
 }
 
+norm_mat = function(x) {
+  x - matrix(mclust::logsumexp(x), nrow = nrow(x), ncol = ncol(x), byrow = F)
+}
 
+sample_cat = function(logp) {
+  n = nrow(logp)
+  z = as.integer(extraDistr::rcatlp(n = n, log_prob = logp) + 1)
+  return(z)
+}
+
+compute_kernel = function(theta, M, S, id) {
+
+  d = rowSums(dnorm(as.matrix(theta - M), sd = S, log = TRUE))
+  did = rowsum(d, id)
+  return(did)
+
+}
+
+compute_kernel2 = function(theta, M, S, id) {
+
+  E = theta - M
+  -0.5*rowsum(diag(as.matrix(E %*% crossprod(E, S))), id)
+
+}
+
+taper_matrix = function(R, k, type = "linear") {
+
+  D <- abs(row(R) - col(R))
+  C <- matrix(0, nrow = nrow(R), ncol = ncol(R))
+
+  if (type == "linear") {
+    C <- pmax(0, 1 - (D / k))
+
+  } else if (type == "spherical") {
+
+    valid_idx <- D <= k
+    C[valid_idx] <- 1 - 1.5 * (D[valid_idx] / k) + 0.5 * (D[valid_idx] / k)^3
+
+  } else {
+    stop("Type must be 'linear' or 'spherical'")
+  }
+
+  R_tapered <- R * C
+
+  return(R_tapered)
+}
+
+expand_blocks = function(A, w, n_time) {
+  n = length(w)
+
+  idx = rep((w - 1) * n_time, each = n_time) + rep(1:n_time, times = n)
+
+  A[idx, , drop = FALSE]
+}
+
+compute_wR = function(z, logP, model_data) {
+
+  B = model_data$theta_spline$B_n
+  S = model_data$theta_spline$S_n
+
+  weigth = exp(logP[cbind(1:length(z), z)])
+  BW = B * matrix(weigth, nrow = nrow(B), ncol = ncol(B), byrow = FALSE)
+  tBWB = crossprod(BW, B)
+  R = B %*% solve(tBWB + S) %*% t(BW)
+  return(R)
+
+}
 

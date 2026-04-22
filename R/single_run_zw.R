@@ -1,22 +1,16 @@
-single_run = function(model_data,
-                      iters,
-                      burn_in,
-                      thin,
-                      tune = 0,
-                      alpha_prior,
-                      mixscat_prior,
-                      z = NULL,
-                      w = NULL,
-                      adapt_H,
-                      alpha0,
-                      alpha1,
-                      init_list = NULL,
-                      logP_proposal = NULL,
-                      smooth,
-                      w_prior = NULL,
-                      global_update = TRUE,
-                      clust_var,
-                      seed) {
+single_run_zw = function(model_data,
+                         iters,
+                         burn_in,
+                         thin,
+                         tune = 0,
+                         alpha_prior,
+                         z = NULL,
+                         w = NULL,
+                         adapt_H,
+                         alpha0,
+                         alpha1,
+                         init_list = NULL,
+                         seed) {
 
   init_time = Sys.time()
 
@@ -39,6 +33,7 @@ single_run = function(model_data,
       model_data = model_data,
       alpha_prior = alpha_prior,
       init_list = NULL,
+      mixscat_prior = TRUE,
       seed = seed
     )
 
@@ -53,6 +48,7 @@ single_run = function(model_data,
       model_data = model_data,
       alpha_prior = alpha_prior,
       init_list = init_list,
+      mixscat_prior = TRUE,
       seed = seed
     )
 
@@ -64,18 +60,11 @@ single_run = function(model_data,
   K = model_data$dims$K
   M = model_data$dims$M
 
-  # alpha = sample_list$alpha[1,,]
-  # km = kmeans(init_list$theta, centers = G, iter.max = 100)
-  # z_init = km$cluster
-  # mu_init = km$centers
-
   if(!is.null(z)) {
     z_fixed = TRUE
   }else{
     z_fixed = FALSE
     z = sample_list$z[1,]
-    # z = z_init
-
   }
 
   if(!is.null(w)) {
@@ -87,11 +76,8 @@ single_run = function(model_data,
   }
 
 
-  mu = sample_list$mu[1,,]
   sigma = sample_list$sigma[1,]
-  sigma_state = sample_list$sigma_state[1,,]
-  sigma_mu = sample_list$sigma_mu[1,]
-
+  mu = sample_list$mu[1,,]
   beta = sample_list$beta[1,,]
   pw = sample_list$pw[1,]
   epsilon = sample_list$epsilon[1,,]
@@ -100,13 +86,9 @@ single_run = function(model_data,
   pz = sample_list$pz[1, ]
   omega = sample_list$omega[1, ]
   ind = sample_list$ind[1, ]
+  sigma_theta = sample_list$sigma_theta[1, ]
   v = sample_list$v[1, ]
   z_w = sample_list$z_w[1,,]
-
-  sample_list$accept = matrix(
-    nrow = length(sample_list$iters_vec),
-    ncol = ifelse(global_update, model_data$dims$n_id, model_data$dims$n)
-  )
 
   H_max = model_data$dims$K
 
@@ -126,11 +108,10 @@ single_run = function(model_data,
 
     cat(iter, "\r")
 
-    update = update_chain(
+    update = update_chain_zw(
       H = H,
       H_max = H_max,
       epsilon = epsilon,
-      sigma_theta = sigma_theta,
       alpha = alpha,
       alpha_precision = alpha_precision,
       psi = psi,
@@ -146,20 +127,12 @@ single_run = function(model_data,
       z_fixed = z_fixed,
       w_fixed = w_fixed,
       alpha_fixed = FALSE,
-      mixscat_prior = mixscat_prior,
       alpha_prior = alpha_prior,
-      add_cluster = add_cluster,
-      smooth = smooth,
-      logP_proposal = logP_proposal,
-      global_update = global_update,
-      sigma_state = sigma_state,
-      clust_var = clust_var,
-      sigma_mu = sigma_mu,
-      w_prior = w_prior,
       adapt_H = (runif(1) < exp(-(alpha0 + alpha1 * iter))) & (adapt_H == TRUE) & (iter > 0)
     )
 
     theta = update$theta
+    epsilon = update$epsilon
     alpha = update$alpha
     psi = update$psi
     z = update$z
@@ -173,14 +146,14 @@ single_run = function(model_data,
     alpha_precision = update$alpha_precision
     H_active = update$H_active
     H = update$H
-    log_accept_prob = update$log_accept_prob
-    sigma_state = update$sigma_state
-    sigma_mu = update$sigma_mu
+    w_post_prob = update$w_post_prob
+    z_w = update$z_w
 
     if(iter %in% sample_list$iters_vec) {
 
       sample_list$alpha[i,,] = alpha
       sample_list$theta[i,,] = theta
+      sample_list$epsilon[i,,] = epsilon
       sample_list$alpha_precision[i,,] = alpha_precision
       sample_list$psi[i, ] = psi
       sample_list$z[i, ] = z
@@ -189,19 +162,13 @@ single_run = function(model_data,
       sample_list$beta[i,,] = beta
       sample_list$w[i, ] = w
       sample_list$pw[i, ] = as.numeric(pw)
-      sample_list$sigma_state[i,,] = sigma_state
-      sample_list$sigma_mu[i,] = sigma_mu
       sample_list$pz[i, ] = pz
-
-
       sample_list$H_active[i] = H_active
       sample_list$H[i] = H
       sample_list$omega[i, ] = omega
-      sample_list$accept[i, ] = update$accept
+      sample_list$z_w[i,,] = z_w
+      sample_list$w_post_prob[i,,] = w_post_prob
 
-      # if(is.null(logP_proposal) & (z_fixed == FALSE)) {
-      #   sample_list$logP[i,,] = update$logP
-      # }
 
       i = i + 1
 
@@ -209,19 +176,15 @@ single_run = function(model_data,
 
   }
 
-  if(adapt_H == FALSE) {
-    rotation_list = get_rotation_list(
-      sample_list$alpha, reference_matrix = init_list$alpha
+  rotation_list = get_rotation_list(
+    sample_list$alpha, reference_matrix = init_list$alpha
+  )
+
+  for(param in c("alpha", "theta", "mu", "epsilon")){
+    sample_list[[param]] = apply_rotation(
+      sample_list[[param]], rotation_list = rotation_list
     )
-
-    for(param in c("alpha", "theta", "mu", "epsilon")){
-      sample_list[[param]] = apply_rotation(
-        sample_list[[param]], rotation_list = rotation_list
-      )
-    }
   }
-
-
 
   out = list(
     sample_list = sample_list,
