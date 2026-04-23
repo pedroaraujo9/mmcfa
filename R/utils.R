@@ -750,3 +750,12 @@ compute_wR = function(z, logP, model_data) {
 
 }
 
+compute_entropy = function(pw, normalize = TRUE) {
+
+  h = -rowSums(pw * log(pw), na.rm = T)
+  M = ncol(pw)
+  if(normalize == TRUE) h = h/log(M)
+  return(h)
+
+}
+

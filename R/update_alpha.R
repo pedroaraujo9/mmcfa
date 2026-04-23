@@ -1,41 +1,19 @@
-update_alpha = function(theta,
-                        psi,
-                        prior_precision,
-                        model_data) {
+update_alpha = function(H, theta, psi, model_data, prior_precision) {
 
   J = model_data$dims$J
   y = model_data$data$y
-  n = model_data$dims$n
-  H = ncol(theta)
 
-  alpha = matrix(0, nrow = J, ncol = H)
-  tau = 1/psi
-  tau_matrix = matrix(1/psi, nrow = n, ncol = J, byrow = T)
+  #S0 = diag(prior_precision, nrow = H, ncol = H)
+  #Psi = diag(1/psi, nrow = J, ncol = J)
+  S0 = diag(prior_precision)
+  Psi = diag(1/psi)
 
-  prior_mean = rep(0, H)
+  OtO = crossprod(theta)
+  V = solve(kronecker(OtO, Psi) + kronecker(S0, diag(J)))
 
-  for(j in 1:J) {
-
-    if(H == 1) {
-
-      prior_precision_j = matrix(prior_precision[j, ], nrow = 1, ncol = 1)
-
-    }else{
-
-      prior_precision_j = diag(prior_precision[j, ])
-
-    }
-
-    alpha[j, ] = propose_coef_rcpp(
-      y = cbind(y[, j]),
-      X = cbind(theta),
-      X_prec = matrix(tau[j], nrow = n, ncol = H),
-      y_prec = cbind(tau_matrix[, j]),
-      prior_mean = prior_mean,
-      prior_precision = prior_precision_j
-    )
-
-  }
+  m = V %*% as.vector(Psi %*% t(y) %*% theta)
+  alpha = m + t(chol(V)) %*% rnorm(J*H)
+  alpha = matrix(alpha, nrow = J, ncol = H, byrow = FALSE)
 
   return(alpha)
 }

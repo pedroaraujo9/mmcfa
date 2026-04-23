@@ -12,11 +12,11 @@ adapt_cusp = function(H_active,
                       v,
                       nu,
                       min_var,
-                      model_data) {
+                      model_data,
+                      add_cluster = TRUE) {
 
   G = model_data$dims$G
   idx = as.integer(model_data$data$id)
-  R = model_data$theta_spline$R
 
   if(H_active < H - 1) {
 
@@ -27,7 +27,7 @@ adapt_cusp = function(H_active,
     mu = cbind(mu[, active_col]) %>% complete_dim(dimension = H_max) %>% cbind()
     theta = cbind(theta[, active_col]) %>% complete_dim(dimension = H_max) %>% cbind()
     omega = omega[active_col] %>% complete_dim(dimension = H_max) %>% cbind()
-    alpha_precision = cbind(alpha_precision[, active_col]) %>% complete_dim(dimension = H_max)
+    alpha_precision = alpha_precision[active_col] %>% complete_dim(dimension = H_max)
 
     H = H_active + 1
 
@@ -35,12 +35,16 @@ adapt_cusp = function(H_active,
     prec_H = 1/min_var
     alpha_H = rnorm(nrow(alpha), 0, sqrt(min_var))
     mu_H = rnorm(G, 0, 1)
-    theta_H = rnorm(nrow(theta), as.numeric(R %*% cbind(mu_H[z])), sigma[idx])
+    if(add_cluster == TRUE) {
+      theta_H = rnorm(nrow(theta), mu_H[z], sigma[cbind(idx, z)])
+    }else{
+      theta_H = rnorm(nrow(theta), 0, 1)
+    }
     alpha[, H] = alpha_H
     mu[, H] = mu_H
     theta[, H] = theta_H
     omega[H] = omega_H
-    alpha_precision[, H] = prec_H
+    alpha_precision[H] = prec_H
 
     v[H] = 1
     v[(H+1):H_max] = NA
@@ -55,13 +59,17 @@ adapt_cusp = function(H_active,
     omega = v[1:H] %>% stick_breaking()
 
     mu_H = rnorm(G, 0, 1)
-    theta_H = rnorm(nrow(theta), as.numeric(R %*% cbind(mu_H[z])), sigma[idx])
+    if(add_cluster == TRUE) {
+      theta_H = rnorm(nrow(theta), mu_H[z], sigma[cbind(idx, z)])
+    }else{
+      theta_H = rnorm(nrow(theta), 0, 1)
+    }
 
     # update
     alpha[, H] = alpha_H
     mu[, H] = mu_H
     theta[, H] = theta_H
-    alpha_precision[, H] = 1/min_var
+    alpha_precision[H] = 1/min_var
     omega = omega %>% complete_dim(dimension = H_max)
 
     if(H < H_max) {
@@ -70,6 +78,7 @@ adapt_cusp = function(H_active,
       theta[, (H+1):H_max] = NA
       mu[, (H+1):H_max] = NA
       v[(H+1):H_max] = NA
+      alpha_precision[(H+1):H_max] = NA
 
     }
   }

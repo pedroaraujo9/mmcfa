@@ -16,17 +16,13 @@ update_alpha_rep = function(theta, psi, model_data, prior_precision) {
   return(alpha)
 }
 
-update_theta_new = function(mu,
-                            sigma,
+update_theta_new = function(H,
+                            mu,
+                            sigma_state,
                             alpha,
                             psi,
                             z,
-                            H,
-                            model_data,
-                            sigma_state,
-                            w,
-                            clust_var,
-                            smooth) {
+                            model_data) {
 
   # dimensions
   J = model_data$dims$J
@@ -51,61 +47,30 @@ update_theta_new = function(mu,
   YAS = y %*% AS
 
   theta = matrix(nrow = n, ncol = H)
-
-  if(clust_var == TRUE) {
-    tau = 1/(sigma_state^2)
-  }else{
-    tau = 1/(sigma^2)
-  }
+  tau = 1/(sigma_state^2)
+  noise = gen_normal_mat(n, H)
 
   for(i in 1:n_id) {
 
     filter = id == id_unique[i]
+    rows_i = which(filter)
     zi = z[filter]
 
-    if(smooth == TRUE) {
-      Mi = Ri %*% mu[zi, ]
-    }else{
-      Mi = mu[zi, ]
-    }
+    for(g in unique(zi)) {
 
-    if(clust_var == FALSE) {
+      zig = (zi == g)
+      idx_tg = rows_i[zig]
 
-      tau_i = tau[i]
-
+      tau_i = tau[i, g]
       V = solve(tASA + I_H * tau_i)
 
-      YASi = YAS[filter, , drop = FALSE]
-      mi = (YASi + tau_i * Mi) %*% V
+      mi = (YAS[idx_tg, , drop=FALSE] + tau_i * matrix(mu[g, ], nrow=sum(zig), ncol=H, byrow=TRUE)) %*% V
 
-      theta[filter, ] = mi +  gen_normal_mat(n_time, H) %*% chol(V)
-    }else{
-
-
-      if(smooth == TRUE) {
-        Mi = Ri %*% mu[zi, ]
-      }else{
-        Mi = mu[zi, ]
-      }
-
-      YASi = YAS[filter, , drop = FALSE]
-      noise = gen_normal_mat(n, H)
-
-      for(g in unique(zi)) {
-
-        zig = zi == g
-        n_zig = sum(zig)
-        tau_i = tau[i, g]
-        V = solve(tASA + I_H * tau_i)
-
-        mi = (YASi[zig, ] + tau_i * Mi[zig, ]) %*% V
-        theta[filter, ][zig, ] = mi +  noise[filter, ][zig, ] %*% chol(V)
-
-      }
+      theta[idx_tg, ] = mi + noise[idx_tg, , drop=FALSE] %*% chol(V)
 
     }
-
   }
+
 
   return(theta)
 
@@ -182,57 +147,44 @@ update_epsilon_new = function(mu,
 
 }
 
-update_mu_new = function(z,
-                         sigma,
-                         theta,
-                         H,
-                         model_data,
-                         w,
-                         mixscat_prior,
+update_mu_new = function(H,
+                         z,
                          sigma_state,
-                         clust_var,
-                         sigma_mu,
-                         smooth) {
+                         theta,
+                         model_data) {
 
   G = model_data$dims$G
   n = model_data$dims$n
-  R = model_data$theta_spline$R
   idx = as.integer(model_data$data$id)
 
+  sigma = sigma_state[cbind(idx, z)]
+  tau = 1/(sigma^2)
 
-  if(clust_var == TRUE) {
+  # L_inv = diag(tau)
+  # Z = create_dummy(z, G)
+  # V0 = diag(G)
+  # tZL = crossprod(Z, L_inv)
+  # V1 = tZL %*% Z
+  # V = solve(V0 + V1)
+  # m = V %*% tZL %*% theta
+  # mu = as.matrix(m + t(chol(V)) %*% gen_normal_mat(G, H))
 
-    sigma = sigma_state[cbind(idx, z)]
-    tau = 1/(sigma^2)
+  res_prec = tapply(tau, z, sum)
+  prec_diag = rep(1, G)
+  prec_diag[as.numeric(names(res_prec))] = 1 + res_prec
 
-  }else{
+  m_num = matrix(0, nrow = G, ncol = H)
+  present_states = as.numeric(names(res_prec))
 
-    tau = 1/(sigma[idx]^2)
-
+  for(h in 1:H) {
+    res_mean = tapply(theta[, h] * tau, z, sum)
+    m_num[present_states, h] = res_mean
   }
 
-  L_inv = diag(tau)
+  V_diag = 1 / prec_diag
+  m = m_num * V_diag
+  mu = m + (sqrt(V_diag) * gen_normal_mat(G, H))
 
-
-  Z = create_dummy(z, G)
-
-  if(smooth == TRUE) {
-
-    A = R %*% Z
-
-  }else{
-
-    A = Z
-
-  }
-
-  V0 = diag(1/(sigma_mu^2))
-  tAL = crossprod(A, L_inv)
-  V1 = tAL %*% A
-  V = solve(V0 + V1)
-
-  m = V %*% tAL %*% theta
-  mu = as.matrix(m + t(chol(V)) %*% gen_normal_mat(G, H))
 
   return(mu)
 
@@ -248,7 +200,8 @@ update_sigma_mu = function(mu, model_data, H){
 
 }
 
-update_sigma_new = function(H, theta,
+update_sigma_new = function(H,
+                            theta,
                             mu,
                             z,
                             model_data,
@@ -297,31 +250,18 @@ update_sigma_clust = function(H,
                               theta,
                               mu,
                               z,
-                              est_epsilon,
-                              model_data,
-                              smooth,
-                              w) {
+                              model_data) {
 
   G = model_data$dims$G
   n = model_data$dims$n
-  id = model_data$data$id
   n_id = model_data$dims$n_id
   n_time = model_data$dims$n_time
-  R = model_data$theta_spline$R
-  Ri = model_data$theta_spline$Ri
   M = model_data$dims$M
+
   id_unique = model_data$data$id_unique
+  id = model_data$data$id
 
-  if(smooth == TRUE) {
-
-    se = as.matrix(theta - R %*% mu[z, ])^2
-
-  }else{
-
-    se = (theta - mu[z, ])^2
-
-  }
-
+  se = (theta - mu[z, ])^2
   zf = factor(z, levels = 1:G)
   n_id_g = as.matrix(table(id, zf))
 
@@ -351,22 +291,15 @@ update_sigma_clust = function(H,
 
 }
 
-update_z_new = function(z,
+update_z_new = function(H,
                         w,
                         theta,
                         mu,
-                        sigma,
-                        H,
+                        sigma_state,
                         pz,
                         beta,
                         model_data,
-                        mixscat_prior,
-                        add_sigma_w,
-                        time_pz,
-                        clust_var,
-                        sigma_state,
-                        logP_proposal = NULL,
-                        global_update = TRUE) {
+                        mixscat_prior) {
 
   G = model_data$dims$G
   M = model_data$dims$M
@@ -382,134 +315,32 @@ update_z_new = function(z,
   id = model_data$data$id
   R = model_data$theta_spline$R
 
+  idx = as.integer(id)
+
   if(mixscat_prior == TRUE) {
 
     prob = compute_probs(w = w, M = M, B = B, beta = beta)
 
   }else{
 
-    prob = matrix(pz, nrow = n, ncol = G, byrow = T)
+    prob = matrix(as.numeric(pz), nrow = n, ncol = G, byrow = T)
 
   }
 
-  idx = as.integer(id)
+  logP = lapply(1:G, function(g){
 
+    mu_g = matrix(mu[g, ], nrow = n, ncol = H, byrow = TRUE)
+    s = sigma_state[cbind(idx, g)]
 
-  if(clust_var == FALSE) {
-    s = matrix(sigma[idx], nrow = n, ncol = H, byrow = F)
+    logp = dnorm(theta, mean = mu_g, sd = s, log = TRUE)
+    rowSums(logp)
 
-  }else{
-    s = matrix(sigma_state[cbind(idx, z)], nrow = n, ncol = H, byrow = F)
-  }
+  }) %>% do.call(cbind, .)
 
-  eta = 1
+  logP = norm_mat(logP + log(prob))
+  z = sample_cat(logP)
 
-  if(!is.null(logP_proposal)) {
-
-    if(global_update == TRUE) {
-
-      # ll = lapply(1:G, function(g){
-      #   mu_g = matrix(mu[g, ], nrow = n, ncol = H, byrow = TRUE)
-      #   logp = dnorm(theta, mean = mu_g, sd = eta * s, log = TRUE)
-      #   rowSums(logp)
-      # }) %>% do.call(cbind, .)
-
-      # logP_proposal = norm_mat(ll + log(prob))
-
-      logP_proposal = logP_proposal * eta
-      z_new = sample_cat(logP_proposal)
-
-      #R_new = compute_wR(z_new, logP = logP_proposal, model_data = model_data)
-      #R_current = compute_wR(z, logP = logP_proposal, model_data = model_data)
-
-      p_new = compute_kernel(theta, M = R %*% mu[z_new, ], S = s, id = id)
-      p_old = compute_kernel(theta, M = R %*% mu[z, ], S = s, id = id)
-      p_new = p_new + rowsum(log(prob[cbind(1:n, z_new)]), id)
-      p_old = p_old + rowsum(log(prob[cbind(1:n, z)]), id)
-
-      q_new = rowsum(logP_proposal[cbind(1:n, z_new)], id)
-      q_old = rowsum(logP_proposal[cbind(1:n, z)], id)
-      # q_new = compute_kernel(theta, M = mu[z_new, ], S = s, id = id)
-      # q_old = compute_kernel(theta, M = mu[z, ], S = s, id = id)
-
-      log_accept_prob = as.numeric((p_new - p_old) + (q_old - q_new))
-
-      accept = log(runif(n_id)) < log_accept_prob
-      z[accept[idx]] = z_new[accept[idx]]
-      logP = NULL
-
-    }else{
-
-      z_new = sample_cat(logP_proposal)
-      accept_vec = numeric(n)
-
-      for(t in 1:n_time) {
-
-        filter = t == time_seq
-
-        if(any(z_new[filter] != z[filter])) {
-
-          z_prop = z
-          z_prop[filter] = z_new[filter]
-
-          z_prop_t = z_prop[filter]
-          z_curr_t = z[filter]
-          logP_t = logP_proposal[filter, ]
-
-          p_new = compute_kernel(theta, M = R %*% mu[z_prop, ], S = s, id = id)
-          p_old = compute_kernel(theta, M = R %*% mu[z, ], S = s, id = id)
-          p_new = p_new + rowsum(log(prob[cbind(1:n, z_prop)]), id)
-          p_old = p_old + rowsum(log(prob[cbind(1:n, z)]), id)
-
-          q_new = logP_t[cbind(1:n_id, z_prop_t)]
-          q_old = logP_t[cbind(1:n_id, z_curr_t)]
-
-          log_accept_prob = as.numeric((p_new - p_old) + (q_old - q_new))
-          accept = log(runif(n_id)) < log_accept_prob
-          z[filter][accept] = z_prop[filter][accept]
-
-          accept_vec[filter] = accept
-          logP = NULL
-
-        }
-
-      }
-
-      accept = accept_vec
-
-
-    }
-
-  }else{
-
-    logP = lapply(1:G, function(g){
-
-      mu_g = matrix(mu[g, ], nrow = n, ncol = H, byrow = TRUE)
-      logp = dnorm(theta, mean = mu_g, sd = s, log = TRUE)
-      rowSums(logp)
-
-    }) %>% do.call(cbind, .)
-
-    logP = norm_mat(logP + log(prob))
-
-    if(any((is.na(logP) | is.infinite(logP)))) {
-      print("problem is in Z")
-    }
-    z = sample_cat(logP)
-    accept = TRUE
-    log_accept_prob = rep(0, n)
-
-  }
-
-  out = list(
-    z = z,
-    accept = accept,
-    log_accept_prob = log_accept_prob,
-    logP = logP
-  )
-
-  return(out)
-
+  return(z)
 
 }
 
