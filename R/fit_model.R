@@ -29,6 +29,9 @@
 #' @param spline_intercept_penalty Numeric. Penalty on spline intercept.
 #' @param spline_penalty Numeric. Spline smoothness penalty.
 #' @param add_cluster Logical. If FALSE, run without the clustering component.
+#' @param drop_params Optional character vector of parameter names to remove
+#'   from outputs in \code{post_sample}, \code{chains[[i]]$sample_list}, and
+#'   \code{chains[[i]]$init}.
 #' @param verbose Logical. If TRUE, print iteration progress.
 #'
 #' @return A list with elements:
@@ -67,6 +70,7 @@ fit_model = function(y,
                      spline_intercept_penalty = 1,
                      spline_penalty = 1,
                      add_cluster = TRUE,
+                     drop_params = NULL,
                      verbose = TRUE) {
 
   init_time = Sys.time()
@@ -107,6 +111,7 @@ fit_model = function(y,
     spline_penalty = spline_penalty,
     alpha_prior = alpha_prior,
     add_cluster = add_cluster,
+    drop_params = drop_params,
     verbose = verbose
   )
 
@@ -158,17 +163,18 @@ fit_model = function(y,
   post_sample = combine_chains(runs$chains)
   post_sample$spline_probs = compute_spline_probs(model_data, post_sample)
 
-  if (isFALSE(mixscat_prior)) {
-    drop_params = c("w", "w_post_prob", "beta", "pw")
+  mixscat_drop_params = if (isFALSE(mixscat_prior)) c("w", "w_post_prob", "beta", "pw") else character(0)
+  out_drop_params = unique(c(mixscat_drop_params, drop_params))
 
-    post_sample[drop_params] = NULL
+  if (length(out_drop_params) > 0) {
+    post_sample[intersect(out_drop_params, names(post_sample))] = NULL
 
     runs$chains = lapply(runs$chains, function(chain) {
       if (!is.null(chain$sample_list)) {
-        chain$sample_list[drop_params] = NULL
+        chain$sample_list[intersect(out_drop_params, names(chain$sample_list))] = NULL
       }
       if (!is.null(chain$init)) {
-        chain$init[drop_params] = NULL
+        chain$init[intersect(out_drop_params, names(chain$init))] = NULL
       }
       chain
     })

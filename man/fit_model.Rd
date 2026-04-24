@@ -31,6 +31,7 @@ fit_model(
   spline_intercept_penalty = 1,
   spline_penalty = 1,
   add_cluster = TRUE,
+  drop_params = NULL,
   verbose = TRUE
 )
 }
@@ -85,6 +86,10 @@ and one column per variable.}
 \item{spline_penalty}{Numeric. Spline smoothness penalty.}
 
 \item{add_cluster}{Logical. If FALSE, run without the clustering component.}
+
+\item{drop_params}{Optional character vector of parameter names to remove
+from outputs in \code{post_sample}, \code{chains[[i]]$sample_list}, and
+\code{chains[[i]]$init}.}
 
 \item{verbose}{Logical. If TRUE, print iteration progress.}
 }
