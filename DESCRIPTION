@@ -17,8 +17,11 @@ Imports:
     future,
     future.apply,
     mclust,
+    purrr,
     Rcpp,
+    stringr,
     testthat,
+    tibble,
     tidyr,
     TraMineR
 Config/testthat/edition: 3

@@ -23,7 +23,7 @@ update_sigma = function(H,
 
       if(sum(g_filter) > 0) {
 
-        see_g = rowsum(x = rbind(se[g_filter, ]), group = id[g_filter]) %>% rowSums(na.rm = TRUE)
+        see_g = rowsum(x = rbind(se[g_filter, ]), group = id[g_filter]) |> rowSums(na.rm = TRUE)
         see_g = see_g[as.character(id_unique)]
         see_g[is.na(see_g)] = 0
         tau = rgamma(n_id, shape = 2 + 0.5*n_id_g[, g]*H, rate = 2 + 0.5*see_g)
@@ -37,7 +37,7 @@ update_sigma = function(H,
       1/sqrt(tau)
 
 
-    }) %>% do.call(cbind, .)
+    }) |> (\(x) do.call(cbind, x))()
 
   }else{
 

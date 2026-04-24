@@ -34,7 +34,7 @@ update_z = function(H,
     logp = dnorm(theta, mean = mu_g, sd = s, log = TRUE)
     rowSums(logp)
 
-  }) %>% do.call(cbind, .)
+  }) |> (\(x) do.call(cbind, x))()
 
   logP = norm_mat(logP + log(prob))
   z_post_prob = exp(logP)

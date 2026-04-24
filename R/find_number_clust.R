@@ -18,6 +18,8 @@
 #' @param spline_penalty Numeric. Spline smoothness penalty.
 #' @param center_data Logical. If TRUE, center y before fitting.
 #' @param scale_data Logical. If TRUE, scale y before fitting.
+#' @param z Optional fixed local cluster assignments. If NULL, z is
+#'   randomly initialized in each run.
 #' @param init_list Optional list of initial values passed to initialization
 #'   runs.
 #' @param seed Optional random seed.
@@ -49,6 +51,7 @@ find_number_clust = function(y,
                              spline_penalty = 1,
                              center_data = TRUE,
                              scale_data = TRUE,
+                             z = NULL,
                              init_list = NULL,
                              seed = NULL,
                              w_dirichlet = 0.01,
@@ -96,7 +99,7 @@ find_number_clust = function(y,
       cusp_alpha0 = 0,
       cusp_alpha1 = 0,
       init_list = init_list,
-      z = NULL,
+      z = z,
       w = NULL,
       w_prior = NULL,
       seed = NULL,
@@ -239,14 +242,11 @@ find_number_clust = function(y,
 
   out = list(
     model_data = model_data,
-    runs = runs,
     entropy = entropy,
-    # prob_last = prob_last
     post_modes = post_modes,
     clust_size = clust_size,
     clust_size_p = clust_size_p,
     run_time = run_time
-
   )
 
   return(out)

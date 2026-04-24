@@ -18,6 +18,7 @@ find_number_clust(
   spline_penalty = 1,
   center_data = TRUE,
   scale_data = TRUE,
+  z = NULL,
   init_list = NULL,
   seed = NULL,
   w_dirichlet = 0.01,
@@ -51,6 +52,9 @@ and one column per variable.}
 \item{center_data}{Logical. If TRUE, center y before fitting.}
 
 \item{scale_data}{Logical. If TRUE, scale y before fitting.}
+
+\item{z}{Optional fixed local cluster assignments. If NULL, z is
+randomly initialized in each run.}
 
 \item{init_list}{Optional list of initial values passed to initialization
 runs.}

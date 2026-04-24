@@ -17,7 +17,6 @@
 #' @param chains Integer. Number of MCMC chains.
 #' @param n_cores Integer. Number of CPU cores used for parallel chains.
 #' @param mixscat_prior Logical. If TRUE, use the mixscat prior.
-#' @param alpha_prior Character. Prior for alpha. One of "normal" or "cusp".
 #' @param center_data Logical. If TRUE, center y before fitting.
 #' @param scale_data Logical. If TRUE, scale y before fitting.
 #' @param init_list Optional list of initial values.
@@ -29,13 +28,6 @@
 #' @param z_dirichlet Numeric. Dirichlet concentration for z.
 #' @param spline_intercept_penalty Numeric. Penalty on spline intercept.
 #' @param spline_penalty Numeric. Spline smoothness penalty.
-#' @param cusp_nu Numeric. CUSP prior parameter nu.
-#' @param cusp_a Numeric. CUSP prior parameter a.
-#' @param cusp_b Numeric. CUSP prior parameter b.
-#' @param cusp_min_var Numeric. Minimum variance used by the CUSP prior.
-#' @param cusp_adapt_H Logical. If TRUE, adapt the active factor dimension.
-#' @param cusp_alpha0 Numeric. Intercept in the adaptation probability schedule.
-#' @param cusp_alpha1 Numeric. Slope in the adaptation probability schedule.
 #' @param add_cluster Logical. If FALSE, run without the clustering component.
 #' @param verbose Logical. If TRUE, print iteration progress.
 #'
@@ -62,29 +54,31 @@ fit_model = function(y,
                      chains,
                      n_cores,
                      mixscat_prior = c(TRUE, FALSE),
-                     alpha_prior = c("normal", "cusp"),
                      center_data = TRUE,
                      scale_data = TRUE,
                      init_list = NULL,
                      z = NULL,
                      w = NULL,
                      w_prior = NULL,
+                     relabel = TRUE, 
                      seed = NULL,
                      w_dirichlet = 0.01,
                      z_dirichlet = 0.01,
                      spline_intercept_penalty = 1,
                      spline_penalty = 1,
-                     cusp_nu = 4,
-                     cusp_a = 2,
-                     cusp_b = 2,
-                     cusp_min_var = 0.01,
-                     cusp_adapt_H = FALSE,
-                     cusp_alpha0 = 4,
-                     cusp_alpha1 = 5*1e-3,
                      add_cluster = TRUE,
                      verbose = TRUE) {
 
   init_time = Sys.time()
+
+  alpha_prior = "normal"
+  cusp_nu = 4
+  cusp_a = 2
+  cusp_b = 2
+  cusp_min_var = 0.01
+  cusp_adapt_H = FALSE
+  cusp_alpha0 = 4
+  cusp_alpha1 = 5 * 1e-3
 
   args = list(
     y = y,
@@ -100,7 +94,6 @@ fit_model = function(y,
     chains = chains,
     n_cores = n_cores,
     mixscat_prior = mixscat_prior,
-    alpha_prior = alpha_prior,
     center_data = center_data,
     scale_data = scale_data,
     init_list = init_list,
@@ -112,13 +105,7 @@ fit_model = function(y,
     z_dirichlet = z_dirichlet,
     spline_intercept_penalty = spline_intercept_penalty,
     spline_penalty = spline_penalty,
-    cusp_nu = cusp_nu,
-    cusp_a = cusp_a,
-    cusp_b = cusp_b,
-    cusp_min_var = cusp_min_var,
-    cusp_adapt_H = cusp_adapt_H,
-    cusp_alpha0 = cusp_alpha0,
-    cusp_alpha1 = cusp_alpha1,
+    alpha_prior = alpha_prior,
     add_cluster = add_cluster,
     verbose = verbose
   )
@@ -161,7 +148,13 @@ fit_model = function(y,
   )
 
   model_data = runs$model_data
-  runs$chains = relabel(runs$chains, n_basis = model_data$clustering$n_basis)
+
+  if(relabel == TRUE) {
+
+    runs$chains = relabel(runs$chains, n_basis = model_data$clustering$n_basis)
+    
+  }
+
   post_sample = combine_chains(runs$chains)
   post_sample$spline_probs = compute_spline_probs(model_data, post_sample)
 

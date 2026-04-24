@@ -31,7 +31,7 @@ update_chain = function(H,
     z = z,
     model_data = model_data,
     add_cluster = add_cluster
-  ) %>% complete_dim(dimension = H_max)
+  ) |> complete_dim(dimension = H_max)
 
   theta_sd = apply(theta, 2, sd)
   theta = scale(theta, center = FALSE, scale = theta_sd)
@@ -47,7 +47,7 @@ update_chain = function(H,
       sigma = sigma,
       theta = theta[, 1:H],
       model_data = model_data
-    ) %>% complete_dim(dimension = H_max)
+    ) |> complete_dim(dimension = H_max)
 
     sigma = update_sigma(
       H = H,
@@ -98,7 +98,7 @@ update_chain = function(H,
     psi = psi,
     prior_precision = alpha_precision[1:H],
     model_data = model_data
-  ) %>% complete_dim(dimension = H_max)
+  ) |> complete_dim(dimension = H_max)
 
   alpha = scale(alpha, center = FALSE, scale = 1/theta_sd)
 
@@ -121,9 +121,9 @@ update_chain = function(H,
 
     ind = out_cusp$ind
     H_active = sum(ind[1:H] > 1:H, na.rm = TRUE)
-    omega = out_cusp$omega[1:H] %>% complete_dim(dimension = H_max)
-    v = out_cusp$v[1:H] %>% complete_dim(dimension = H_max)
-    alpha_precision = out_cusp$prec %>% complete_dim(dimension = H_max)
+    omega = out_cusp$omega[1:H] |> complete_dim(dimension = H_max)
+    v = out_cusp$v[1:H] |> complete_dim(dimension = H_max)
+    alpha_precision = out_cusp$prec |> complete_dim(dimension = H_max)
 
     if(adapt_H == TRUE) {
 
