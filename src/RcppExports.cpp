@@ -294,6 +294,21 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// compute_ll
+arma::mat compute_ll(arma::mat epsilon, arma::mat Rn, arma::mat mu, arma::mat U, arma::mat Z);
+RcppExport SEXP _mixff_compute_ll(SEXP epsilonSEXP, SEXP RnSEXP, SEXP muSEXP, SEXP USEXP, SEXP ZSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::mat >::type epsilon(epsilonSEXP);
+    Rcpp::traits::input_parameter< arma::mat >::type Rn(RnSEXP);
+    Rcpp::traits::input_parameter< arma::mat >::type mu(muSEXP);
+    Rcpp::traits::input_parameter< arma::mat >::type U(USEXP);
+    Rcpp::traits::input_parameter< arma::mat >::type Z(ZSEXP);
+    rcpp_result_gen = Rcpp::wrap(compute_ll(epsilon, Rn, mu, U, Z));
+    return rcpp_result_gen;
+END_RCPP
+}
 
 static const R_CallMethodDef CallEntries[] = {
     {"_mixff_propose_coef_rcpp", (DL_FUNC) &_mixff_propose_coef_rcpp, 6},
@@ -316,6 +331,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_mixff_predict_prob_cpp", (DL_FUNC) &_mixff_predict_prob_cpp, 4},
     {"_mixff_fast_aggregate_sum", (DL_FUNC) &_mixff_fast_aggregate_sum, 2},
     {"_mixff_update_theta_cpp", (DL_FUNC) &_mixff_update_theta_cpp, 4},
+    {"_mixff_compute_ll", (DL_FUNC) &_mixff_compute_ll, 5},
     {NULL, NULL, 0}
 };
 

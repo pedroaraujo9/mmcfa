@@ -1,25 +1,61 @@
-update_sigma = function(epsilon, mu, z, model_data, sigma_a = 1, sigma_b = 1) {
+update_sigma = function(H,
+                        theta,
+                        mu,
+                        z,
+                        model_data,
+                        add_cluster = TRUE) {
 
   G = model_data$dims$G
-  H = ncol(epsilon)
+  n_id = model_data$dims$n_id
 
-  res = (epsilon - mu[z, ])^2
+  id = model_data$data$id
+  id_unique = model_data$data$id_unique
 
-  sigma = numeric(G)
+  if(add_cluster == TRUE) {
 
-  for(g in 1:G) {
+    se = (theta - mu[z, ])^2
+    zf = factor(z, levels = 1:G)
+    n_id_g = as.matrix(table(id, zf))
 
-    if(sum(z == g) == 0) {
+    sigma = lapply(1:G, function(g){
 
-      sigma[g] = 1/sqrt(rgamma(n = 1, shape = sigma_a, rate = sigma_b))
+      g_filter = z == g
 
-    }else{
+      if(sum(g_filter) > 0) {
 
-      ss = sum(res[z == g, ])
-      ng = sum(z == g)
-      sigma[g] = 1/sqrt(rgamma(n = 1, shape = sigma_a + ng*H/2, rate = sigma_b + ss/2))
+        see_g = rowsum(x = rbind(se[g_filter, ]), group = id[g_filter]) |> rowSums(na.rm = TRUE)
+        see_g = see_g[as.character(id_unique)]
+        see_g[is.na(see_g)] = 0
+        tau = rgamma(n_id, shape = 2 + 0.5*n_id_g[, g]*H, rate = 2 + 0.5*see_g)
 
-    }
+      }else{
+
+        tau = rgamma(n_id, shape = 2, rate = 2)
+
+      }
+
+      1/sqrt(tau)
+
+
+    }) |> (\(x) do.call(cbind, x))()
+
+  }else{
+
+    se_id = rowsum(x = rowSums(theta^2), group = id)
+    se_id = se_id[as.character(id_unique), , drop = FALSE]
+    se_id[is.na(se_id)] = 0
+
+    n_id_obs = table(id)
+    n_id_obs = as.numeric(n_id_obs[as.character(id_unique)])
+
+    tau = rgamma(
+      n_id,
+      shape = 2 + 0.5 * n_id_obs * H,
+      rate = 2 + 0.5 * as.numeric(se_id)
+    )
+
+    sigma_id = 1/sqrt(tau)
+    sigma = matrix(sigma_id, nrow = n_id, ncol = G)
 
   }
 

@@ -57,45 +57,23 @@ simulate_data = function(seed, n_basis = 15, theta_spline_penalty = 1) {
   mu = rbind(
     "1" = c(-2, -2),
     "2" = c(2, 2),
-    "3" = c(0, 3)
+    "3" = c(0, 2)
   )
 
-  sigma = rbind(
-    c(1, 1),
-    c(1, 1),
-    c(1, 1)
-  )
-
-  epsilon = matrix(nrow = n, ncol = K)
-
-  for(i in 1:n_id) {
-
-    f = id == id_unique[i]
-
-    center = mu[z[f],]
-    scale = sigma[z[f],]
-
-    noise =  replicate(K, arima.sim(model = list(ar = 0), n = n_time))
-    epsilon[f, ] = center + scale * noise
-  }
+  sigma = c(0.3, 0.3, 0.3)
 
   alpha = gen_normal_mat(J, K)
-  psi = runif(J, 1, 5)
+  psi = runif(J, 0.5, 1)
   psi_matrix  = matrix(psi, nrow = n, ncol = J, byrow = TRUE)
 
   #### generate smooth latent effets ####
-  theta_basis_funcions = create_basis_matrix(
-    n_basis = n_basis,
-    time = 1:n_time
+  R = generate_R(
+    time = 1:n_time, n_basis = n_basis, spline_penalty = theta_spline_penalty
   )
 
-  B_theta = theta_basis_funcions$model_matrix
-  S_theta = theta_basis_funcions$nD
-  S_theta = S_theta * theta_spline_penalty
-  S_theta[1, 1] = theta_intercept_penalty
+  Z = create_dummy(z, G)
 
-  R = B_theta %*% solve(t(B_theta) %*% B_theta + S_theta) %*% t(B_theta)
-  theta = kronecker(diag(n_id), R) %*% epsilon
+  theta = kronecker(diag(n_id), R) %*% Z %*% mu + diag(sigma[w[id]]) %*% gen_normal_mat(n, K)
 
   theta_df = data.frame(theta, z = z, id = id, time = time, w = w[id]) |>
     tidyr::gather(dim, value, -z, -id, -time, -w) |>
@@ -103,7 +81,7 @@ simulate_data = function(seed, n_basis = 15, theta_spline_penalty = 1) {
 
   #### generate data ####
   eta = theta %*% t(alpha)
-  y = gen_normal_mat(n, J) * psi_matrix + eta
+  y = gen_normal_mat(n, J) * sqrt(psi_matrix) + eta
 
   #### return ####
   data_sim = list(
@@ -117,14 +95,9 @@ simulate_data = function(seed, n_basis = 15, theta_spline_penalty = 1) {
       sigma = sigma,
       theta = theta,
       theta_df = theta_df,
-      epsilon = epsilon,
       alpha = alpha,
       psi = psi,
-      B_theta = B_theta,
-      S_theta = S_theta,
-      n_basis = n_basis,
-      theta_spline_penalty = theta_spline_penalty,
-      theta_intercept_penalty = theta_intercept_penalty
+      n_basis = n_basis
     )
   )
 

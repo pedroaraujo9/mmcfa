@@ -1,32 +1,31 @@
-update_mu = function(epsilon, z, sigma, model_data) {
+update_mu = function(H,
+                     z,
+                     sigma,
+                     theta,
+                     model_data) {
 
   G = model_data$dims$G
-  H = ncol(epsilon)
+  idx = as.integer(model_data$data$id)
 
-  mu = matrix(0, nrow = G, ncol = H)
+  sigma_long = sigma[cbind(idx, z)]
+  tau = 1/(sigma_long^2)
 
-  for(g in 1:G) {
+  res_prec = tapply(tau, z, sum)
+  prec_diag = rep(1, G)
+  prec_diag[as.numeric(names(res_prec))] = 1 + res_prec
 
-    ng = sum(z == g)
+  m_num = matrix(0, nrow = G, ncol = H)
+  present_states = as.numeric(names(res_prec))
 
-    if(ng == 0) {
-
-      mu[g, ] = rnorm(H, 0, 1)
-
-    } else {
-
-      epsilon_bar = colMeans(epsilon[z == g, , drop = FALSE])
-
-      data_prec  = ng / (sigma[g]^2)
-      prior_prec = 1
-
-      post_prec = data_prec + prior_prec
-      post_var  = 1 / post_prec
-      post_mean = post_var * data_prec * epsilon_bar
-
-      mu[g, ] = rnorm(H, post_mean, sqrt(post_var))
-    }
+  for(h in 1:H) {
+    res_mean = tapply(theta[, h] * tau, z, sum)
+    m_num[present_states, h] = res_mean
   }
+
+  V_diag = 1 / prec_diag
+  m = m_num * V_diag
+  mu = m + (sqrt(V_diag) * gen_normal_mat(G, H))
+
 
   return(mu)
 

@@ -7,17 +7,20 @@ create_model_data = function(y,
                              center = TRUE,
                              scale = FALSE,
                              n_basis = 10,
-                             theta_intercept_penalty = 1,
-                             theta_spline_penalty = 1,
-                             z_intercept_penalty = 1,
-                             z_spline_penalty = 1,
-                             w_dirichlet = 1) {
+                             spline_intercept_penalty = 1,
+                             spline_penalty = 1,
+                             w_dirichlet = 1,
+                             z_dirichlet = 1,
+                             cusp_nu = 2,
+                             cusp_a = 1,
+                             cusp_b = 1,
+                             cusp_min_var = 0.05) {
 
   data = data.frame(
     id = id,
     time = time
   ) |>
-    mutate(id = factor(id, levels = unique(id))) |>
+    dplyr::mutate(id = factor(id, levels = unique(id))) |>
     dplyr::bind_cols(as.data.frame(y)) |>
     dplyr::arrange(id, time)
 
@@ -38,7 +41,7 @@ create_model_data = function(y,
   idx_unique = 0:(n_id-1)
 
   order = 1
-  time_seq = time - min(time) + 1
+  time_seq = as.integer(time - min(time) + 1)
   time_seq_unique = unique(time_seq)
 
   data_mean = colMeans(y)
@@ -52,25 +55,16 @@ create_model_data = function(y,
   ) |>
     dplyr::mutate(id = factor(id, levels = id_unique))
 
-  theta_basis_funcions = create_basis_matrix(
+  basis_funcions = create_basis_matrix(
     n_basis = n_basis,
-    # time = c(min(time_seq_unique) - (1:2), time_seq_unique, max(time_seq_unique) + 1:2)
     time = time_seq_unique
   )
 
-  B_theta = theta_basis_funcions$model_matrix
-  # B_theta = B_theta[-c(1:2, nrow(B_theta) - (1:2)), ]
-  S_theta = theta_basis_funcions$nD
-  S_theta = S_theta * theta_spline_penalty
-  S_theta[1, 1] = theta_intercept_penalty
-
-  R = B_theta %*% solve(t(B_theta) %*% B_theta + S_theta) %*% t(B_theta)
-  C = diag(n_time-1)
-  C = rbind(C, -1)
-
-  RtR = crossprod(R)
-  RR = kronecker(diag(n_id), R)
-  Rty = crossprod(RR, y)
+  B = basis_funcions$model_matrix
+  S = basis_funcions$nD
+  S = S * spline_penalty
+  S[1, 1] = spline_intercept_penalty
+  S_expand = kronecker(diag(M), S)
 
   out = list()
 
@@ -100,16 +94,22 @@ create_model_data = function(y,
     M = M
   )
 
-  out$theta_spline = list(
+  out$cusp = list(
+    nu = cusp_nu,
+    a = cusp_a,
+    b = cusp_b,
+    min_var = cusp_min_var
+  )
+
+  out$clustering = list(
     n_basis = n_basis,
-    theta_intercept_penalty = theta_intercept_penalty,
-    theta_spline_penalty = theta_spline_penalty,
-    B_theta = B_theta,
-    S_theta = S_theta,
-    R = R,
-    Rty = Rty,
-    RtR = RtR,
-    C = C
+    spline_intercept_penalty = spline_intercept_penalty,
+    spline_penalty = spline_penalty,
+    B = B,
+    S = S,
+    S_expand = S_expand,
+    w_dirichlet = w_dirichlet,
+    z_dirichlet = z_dirichlet
   )
 
   return(out)

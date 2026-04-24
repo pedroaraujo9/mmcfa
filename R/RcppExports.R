@@ -81,3 +81,7 @@ update_theta_cpp <- function(epsilon, R, id, id_unique) {
     .Call(`_mixff_update_theta_cpp`, epsilon, R, id, id_unique)
 }
 
+compute_ll <- function(epsilon, Rn, mu, U, Z) {
+    .Call(`_mixff_compute_ll`, epsilon, Rn, mu, U, Z)
+}
+

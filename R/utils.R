@@ -57,9 +57,8 @@ compute_theta = function(mu, Z, E, K) {
 create_dummy = function(z, G) {
 
   if(G != 1) {
+
     Z = fast_dummy_dense(z, G)
-    #z = factor(z, levels = 1:G)
-    #Z = as.matrix(Matrix::sparse.model.matrix(~ -1 + z))
 
   }else{
     Z = matrix(1, nrow = length(z), ncol = 1)
@@ -123,7 +122,7 @@ gen_sample_array = function(iters, dimension, sampler = NULL, init = NULL) {
 }
 
 compute_mode = function(x) {
-  x |> table() %>% which.max() %>% names() %>% as.integer()
+  x |> table() |> which.max() |> names() |> as.integer()
 }
 
 compute_post_stat = function(sample, stat_function = mean, ...) {
@@ -135,7 +134,7 @@ compute_post_stat = function(sample, stat_function = mean, ...) {
     if(dims == 3) {
       est = lapply(1:dim(sample)[3], function(g){
         cbind(sample[, , g]) |> apply(MARGIN = 2, FUN = stat_function, ...)
-      }) %>% do.call(cbind, .)
+      }) |> (\(x) do.call(cbind, x))()
 
     }else if(dims == 2) {
 
@@ -275,7 +274,7 @@ utils::globalVariables(gv)
 gen_notpen_index = function(n_basis, M, order = 1) {
   notpen_index = lapply(1:M, function(k){
     (k -1) * n_basis + 1:(order)
-  }) %>% do.call(c, .)
+  }) |> (\(x) do.call(c, x))()
   return(notpen_index)
 }
 
@@ -378,8 +377,8 @@ comp_post_stat = function(sample, stat_function = mean, ...) {
   if(!is.null(sample)) {
     est = lapply(1:dim(sample)[3], function(g){
       sample[, , g] |> apply(MARGIN = 2, FUN = stat_function, ...)
-    }) %>%
-      do.call(cbind, .)
+    }) |>
+      (\(x) do.call(cbind, x))()
   }else{
     est = NULL
   }
@@ -463,13 +462,13 @@ comp_metrics = function(runs, n, model_data_min) {
     n = model_data_min$n_id
   }
 
-  l_mean = runs %>% purrr::map_dbl(~{mean(.x$logpost[, "penal_logpost"])})
-  l_var = runs %>% purrr::map_dbl(~{stats::var(.x$logpost[, "penal_logpost"])})
+  l_mean = runs |> purrr::map_dbl(~{mean(.x$logpost[, "penal_logpost"])})
+  l_var = runs |> purrr::map_dbl(~{stats::var(.x$logpost[, "penal_logpost"])})
 
   AICM = -2*(l_mean - l_var)
   BICM = -2*(l_mean - (log(n)-1)*l_var)
 
-  l_post = runs %>% purrr::map_dbl(~{.x$logpost_est[1]})
+  l_post = runs |> purrr::map_dbl(~{.x$logpost_est[1]})
   pp = l_post - l_mean
   DIC2 = -2*(l_mean - pp)
   DIC3 = -2*(l_mean - (log(n)-1)*pp)
@@ -501,9 +500,9 @@ comp_metrics = function(runs, n, model_data_min) {
 #' @importFrom tidyr separate
 format_metrics = function(metrics_list) {
 
-  metrics_df = metrics_list %>%
-    as.data.frame() %>%
-    mutate(model = rownames(.)) %>%
+  metrics_df = metrics_list |>
+    as.data.frame() |>
+    (\(x) mutate(x, model = rownames(x)))() |>
     tidyr::separate(model, into = c("G", "M"), sep = ",") |>
     mutate(G = stringr::str_extract(G, "\\d{1,10}"),
            M = stringr::str_extract(M, "\\d{1,10}"))
@@ -639,12 +638,12 @@ compute_hamming = function(z, model_data) {
 }
 
 format_best_lambda = function(best_lambda_list) {
-  best_lambda_list %>%
-    map_dbl(~{.x}) %>%
-    data.frame(model = names(.), lambda = .) %>%
-    tidyr::separate(col = model, into = c("G", "M"), sep = "\\,") %>%
-    mutate(G = stringr::str_remove(G, "G=") %>% as.integer(),
-           M = stringr::str_remove(M, " M=") %>% as.integer()) %>%
+  best_lambda_list |>
+    map_dbl(~{.x}) |>
+    (\(x) data.frame(model = names(x), lambda = x))() |>
+    tidyr::separate(col = model, into = c("G", "M"), sep = "\\,") |>
+    mutate(G = stringr::str_remove(G, "G=") |> as.integer(),
+           M = stringr::str_remove(M, " M=") |> as.integer()) |>
     as_tibble()
 }
 
@@ -660,5 +659,103 @@ comp_prior_mean = function(w, beta_theta, B_unique, M) {
 
 gen_normal_mat = function(n, k) {
   matrix(rnorm(n * k), nrow = n, ncol = k)
+}
+
+compute_probs = function(w, M, B, beta) {
+
+  W = create_dummy(w, M)
+  X = kronecker(W, B)
+  X[, 1] = 1
+  prob = mclust::softmax(X %*% beta)
+
+  return(prob)
+}
+
+plot_cluster = function(run, dims = c(1, 2)) {
+
+  epsilon = run$sample_list$epsilon |> compute_post_stat() |> cbind()
+  z = run$sample_list$z |> comp_class()
+
+  data.frame(epsilon[, dims]) |>
+    ggplot(aes(x = X1, y = X2, color = factor(z))) +
+    geom_point()
+
+}
+
+norm_mat = function(x) {
+  x - matrix(mclust::logsumexp(x), nrow = nrow(x), ncol = ncol(x), byrow = F)
+}
+
+sample_cat = function(logp) {
+  n = nrow(logp)
+  z = as.integer(extraDistr::rcatlp(n = n, log_prob = logp) + 1)
+  return(z)
+}
+
+compute_kernel = function(theta, M, S, id) {
+
+  d = rowSums(dnorm(as.matrix(theta - M), sd = S, log = TRUE))
+  did = rowsum(d, id)
+  return(did)
+
+}
+
+compute_kernel2 = function(theta, M, S, id) {
+
+  E = theta - M
+  -0.5*rowsum(diag(as.matrix(E %*% crossprod(E, S))), id)
+
+}
+
+taper_matrix = function(R, k, type = "linear") {
+
+  D <- abs(row(R) - col(R))
+  C <- matrix(0, nrow = nrow(R), ncol = ncol(R))
+
+  if (type == "linear") {
+    C <- pmax(0, 1 - (D / k))
+
+  } else if (type == "spherical") {
+
+    valid_idx <- D <= k
+    C[valid_idx] <- 1 - 1.5 * (D[valid_idx] / k) + 0.5 * (D[valid_idx] / k)^3
+
+  } else {
+    stop("Type must be 'linear' or 'spherical'")
+  }
+
+  R_tapered <- R * C
+
+  return(R_tapered)
+}
+
+expand_blocks = function(A, w, n_time) {
+  n = length(w)
+
+  idx = rep((w - 1) * n_time, each = n_time) + rep(1:n_time, times = n)
+
+  A[idx, , drop = FALSE]
+}
+
+compute_wR = function(z, logP, model_data) {
+
+  B = model_data$theta_spline$B_n
+  S = model_data$theta_spline$S_n
+
+  weigth = exp(logP[cbind(1:length(z), z)])
+  BW = B * matrix(weigth, nrow = nrow(B), ncol = ncol(B), byrow = FALSE)
+  tBWB = crossprod(BW, B)
+  R = B %*% solve(tBWB + S) %*% t(BW)
+  return(R)
+
+}
+
+compute_entropy = function(pw, normalize = TRUE) {
+
+  h = -rowSums(pw * log(pw), na.rm = T)
+  M = ncol(pw)
+  if(normalize == TRUE) h = h/log(M)
+  return(h)
+
 }
 

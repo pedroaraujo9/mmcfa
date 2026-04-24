@@ -29,14 +29,15 @@ update_beta = function(beta,
   G = model_data$dims$G
   M = model_data$dims$M
 
-  B = model_data$theta_spline$B_theta
-  S = model_data$theta_spline$S_theta
-  S = kronecker(diag(M), S)
+  B = model_data$clustering$B
+  S = model_data$clustering$S_expand
 
   beta = rbind(beta)
 
   W = create_dummy(w, M)
   X = kronecker(W, B)
+  X[, 1] = 1
+
   Z = create_dummy(z, G)
 
   for(g in 1:(G-1)) {
