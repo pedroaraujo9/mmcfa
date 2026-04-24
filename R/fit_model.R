@@ -158,6 +158,22 @@ fit_model = function(y,
   post_sample = combine_chains(runs$chains)
   post_sample$spline_probs = compute_spline_probs(model_data, post_sample)
 
+  if (isFALSE(mixscat_prior)) {
+    drop_params = c("w", "w_post_prob", "beta", "pw")
+
+    post_sample[drop_params] = NULL
+
+    runs$chains = lapply(runs$chains, function(chain) {
+      if (!is.null(chain$sample_list)) {
+        chain$sample_list[drop_params] = NULL
+      }
+      if (!is.null(chain$init)) {
+        chain$init[drop_params] = NULL
+      }
+      chain
+    })
+  }
+
   end_time = Sys.time()
   run_time = end_time - init_time
 
