@@ -2,7 +2,7 @@
 % Please edit documentation in R/fit_model.R
 \name{fit_model}
 \alias{fit_model}
-\title{Fit the mixff model}
+\title{Fit the mmcfa model}
 \usage{
 fit_model(
   y,

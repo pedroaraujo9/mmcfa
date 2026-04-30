@@ -1,4 +1,4 @@
-#' Fit the mixff model
+#' Fit the mmcfa model
 #'
 #' Fits the full model and returns chain-level samples, combined posterior
 #' samples, model metadata, and runtime information.
