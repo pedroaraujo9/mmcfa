@@ -33,65 +33,6 @@ update_chain = function(H,
     add_cluster = add_cluster
   ) |> complete_dim(dimension = H_max)
 
-  theta_sd = apply(theta, 2, sd)
-  theta = scale(theta, center = FALSE, scale = theta_sd)
-
-  z_post_prob = NA
-  w_post_prob = NA
-
-  if(add_cluster == TRUE) {
-
-      mu = update_mu(
-      H = H,
-      z = z,
-      sigma = sigma,
-      theta = theta[, 1:H],
-      model_data = model_data
-    ) |> complete_dim(dimension = H_max)
-
-    sigma = update_sigma(
-      H = H,
-      theta = theta[, 1:H],
-      mu = mu[, 1:H],
-      z = z,
-      model_data = model_data,
-      add_cluster = add_cluster
-    )
-
-    if(z_fixed == FALSE) {
-
-      z_out = update_z(
-        H = H,
-        w = w,
-        theta = theta[, 1:H],
-        mu = mu[, 1:H],
-        sigma = sigma,
-        pz = pz,
-        beta = beta,
-        model_data = model_data,
-        mixscat_prior = mixscat_prior
-      )
-
-      z = z_out$z
-      z_post_prob = z_out$z_post_prob
-
-    }else{
-      z_post_prob = NA
-    }
-
-  }else{
-
-    sigma = update_sigma(
-      H = H,
-      theta = theta[, 1:H],
-      mu = mu[, 1:H],
-      z = z,
-      model_data = model_data,
-      add_cluster = add_cluster
-    )
-
-  }
-
   alpha = update_alpha(
     H = H,
     theta = cbind(theta[, 1:H]),
@@ -99,8 +40,6 @@ update_chain = function(H,
     prior_precision = alpha_precision[1:H],
     model_data = model_data
   ) |> complete_dim(dimension = H_max)
-
-  alpha = scale(alpha, center = FALSE, scale = 1/theta_sd)
 
   if(alpha_prior == "normal") {
 
@@ -158,6 +97,66 @@ update_chain = function(H,
 
   }
 
+  theta_sd = apply(theta, 2, sd)
+  theta = scale(theta, center = FALSE, scale = theta_sd)
+  alpha = scale(alpha, center = FALSE, scale = 1/theta_sd)
+
+  z_post_prob = NA
+  w_post_prob = NA
+
+  if(add_cluster == TRUE) {
+
+      mu = update_mu(
+      H = H,
+      z = z,
+      sigma = sigma,
+      theta = theta[, 1:H],
+      model_data = model_data
+    ) |> complete_dim(dimension = H_max)
+
+    sigma = update_sigma(
+      H = H,
+      theta = theta[, 1:H],
+      mu = mu[, 1:H],
+      z = z,
+      model_data = model_data,
+      add_cluster = add_cluster
+    )
+
+    if(z_fixed == FALSE) {
+
+      z_out = update_z(
+        H = H,
+        w = w,
+        theta = theta[, 1:H],
+        mu = mu[, 1:H],
+        sigma = sigma,
+        pz = pz,
+        beta = beta,
+        model_data = model_data,
+        mixscat_prior = mixscat_prior
+      )
+
+      z = z_out$z
+      z_post_prob = z_out$z_post_prob
+
+    }else{
+      z_post_prob = NA
+    }
+
+  }else{
+
+    sigma = update_sigma(
+      H = H,
+      theta = theta[, 1:H],
+      mu = mu[, 1:H],
+      z = z,
+      model_data = model_data,
+      add_cluster = add_cluster
+    )
+
+  }
+
   psi = update_psi(
     theta = cbind(theta[, 1:H]),
     alpha = cbind(alpha[, 1:H]),
@@ -212,11 +211,11 @@ update_chain = function(H,
     }
 
   }else{
-    w_post_prob = NA 
+    w_post_prob = NA
     z_post_prob = NA
   }
 
-  
+
   out = list(
     theta = theta,
     alpha = alpha,

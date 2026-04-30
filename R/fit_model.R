@@ -63,7 +63,7 @@ fit_model = function(y,
                      z = NULL,
                      w = NULL,
                      w_prior = NULL,
-                     relabel = TRUE, 
+                     relabel = TRUE,
                      seed = NULL,
                      w_dirichlet = 0.01,
                      z_dirichlet = 0.01,
@@ -157,7 +157,7 @@ fit_model = function(y,
   if(relabel == TRUE) {
 
     runs$chains = relabel(runs$chains, n_basis = model_data$clustering$n_basis)
-    
+
   }
 
   post_sample = combine_chains(runs$chains)

@@ -28,9 +28,6 @@ update_chain_cusp = function(H,
     add_cluster = FALSE
   ) |> complete_dim(dimension = H_max)
 
-  theta_sd = apply(theta, 2, sd)
-  theta = scale(theta, center = FALSE, scale = theta_sd)
-
   if(est_sigma == TRUE) {
 
     sigma = update_sigma(
@@ -52,6 +49,8 @@ update_chain_cusp = function(H,
     model_data = model_data
   ) |> complete_dim(dimension = H_max)
 
+  theta_sd = apply(theta, 2, sd)
+  theta = scale(theta, center = FALSE, scale = theta_sd)
   alpha = scale(alpha, center = FALSE, scale = 1/theta_sd)
 
   out_cusp = update_cusp(
