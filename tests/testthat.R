@@ -7,6 +7,6 @@
 # * https://testthat.r-lib.org/articles/special-files.html
 
 library(testthat)
-library(mixff)
+library(mmcfa)
 
-test_check("mixff")
+test_check("mmcfa")

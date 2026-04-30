@@ -2,86 +2,86 @@
 # Generator token: 10BE3573-1514-4C36-9D1C-5A225CD40393
 
 propose_coef_rcpp <- function(y, X, y_prec, X_prec, prior_mean, prior_precision) {
-    .Call(`_mixff_propose_coef_rcpp`, y, X, y_prec, X_prec, prior_mean, prior_precision)
+    .Call(`_mmcfa_propose_coef_rcpp`, y, X, y_prec, X_prec, prior_mean, prior_precision)
 }
 
 sample_theta_cpp <- function(y, alpha, prior_mean, psi, center) {
-    .Call(`_mixff_sample_theta_cpp`, y, alpha, prior_mean, psi, center)
+    .Call(`_mmcfa_sample_theta_cpp`, y, alpha, prior_mean, psi, center)
 }
 
 sample_theta_i_cpp <- function(y, alpha, prior_mean, prior_precision, psi) {
-    .Call(`_mixff_sample_theta_i_cpp`, y, alpha, prior_mean, prior_precision, psi)
+    .Call(`_mmcfa_sample_theta_i_cpp`, y, alpha, prior_mean, prior_precision, psi)
 }
 
 mvrnormArma <- function(n, mu, sigma) {
-    .Call(`_mixff_mvrnormArma`, n, mu, sigma)
+    .Call(`_mmcfa_mvrnormArma`, n, mu, sigma)
 }
 
 cpp_compute_V <- function(X, omega, precision_matrix) {
-    .Call(`_mixff_cpp_compute_V`, X, omega, precision_matrix)
+    .Call(`_mmcfa_cpp_compute_V`, X, omega, precision_matrix)
 }
 
 cpp_compute_m <- function(V, X, z, omega, C) {
-    .Call(`_mixff_cpp_compute_m`, V, X, z, omega, C)
+    .Call(`_mmcfa_cpp_compute_m`, V, X, z, omega, C)
 }
 
 sample_beta <- function(X, omega, inv_cov, z, C) {
-    .Call(`_mixff_sample_beta`, X, omega, inv_cov, z, C)
+    .Call(`_mmcfa_sample_beta`, X, omega, inv_cov, z, C)
 }
 
 sample_beta2 <- function(X, omega, precision_matrix, z, C) {
-    .Call(`_mixff_sample_beta2`, X, omega, precision_matrix, z, C)
+    .Call(`_mmcfa_sample_beta2`, X, omega, precision_matrix, z, C)
 }
 
 logsumexp_cpp <- function(x) {
-    .Call(`_mixff_logsumexp_cpp`, x)
+    .Call(`_mmcfa_logsumexp_cpp`, x)
 }
 
 update_theta2_cpp <- function(epsilon, model_data) {
-    .Call(`_mixff_update_theta2_cpp`, epsilon, model_data)
+    .Call(`_mmcfa_update_theta2_cpp`, epsilon, model_data)
 }
 
 post_epsilon_cpp <- function(prec_prior, prec_data, MU_scaled, Rty_alpha_scaled) {
-    .Call(`_mixff_post_epsilon_cpp`, prec_prior, prec_data, MU_scaled, Rty_alpha_scaled)
+    .Call(`_mmcfa_post_epsilon_cpp`, prec_prior, prec_data, MU_scaled, Rty_alpha_scaled)
 }
 
 utils_comp_epsilon <- function(alpha, alpha_scaled_psi, RtR, Rty) {
-    .Call(`_mixff_utils_comp_epsilon`, alpha, alpha_scaled_psi, RtR, Rty)
+    .Call(`_mmcfa_utils_comp_epsilon`, alpha, alpha_scaled_psi, RtR, Rty)
 }
 
 post_epsilon_cpp2 <- function(prec_prior, prec_data, MU_scaled, Rty_alpha_scaled) {
-    .Call(`_mixff_post_epsilon_cpp2`, prec_prior, prec_data, MU_scaled, Rty_alpha_scaled)
+    .Call(`_mmcfa_post_epsilon_cpp2`, prec_prior, prec_data, MU_scaled, Rty_alpha_scaled)
 }
 
 update_epsilon_cpp <- function(alpha, alpha_scaled_psi, RtR, Rty, MU_scaled, inv_sigma, z, idx) {
-    .Call(`_mixff_update_epsilon_cpp`, alpha, alpha_scaled_psi, RtR, Rty, MU_scaled, inv_sigma, z, idx)
+    .Call(`_mmcfa_update_epsilon_cpp`, alpha, alpha_scaled_psi, RtR, Rty, MU_scaled, inv_sigma, z, idx)
 }
 
 update_epsilon_cpp_fast <- function(alpha, alpha_scaled_psi, RtR, Rty, MU_scaled, inv_sigma, z, idx) {
-    .Call(`_mixff_update_epsilon_cpp_fast`, alpha, alpha_scaled_psi, RtR, Rty, MU_scaled, inv_sigma, z, idx)
+    .Call(`_mmcfa_update_epsilon_cpp_fast`, alpha, alpha_scaled_psi, RtR, Rty, MU_scaled, inv_sigma, z, idx)
 }
 
 fast_dummy_dense <- function(x, G) {
-    .Call(`_mixff_fast_dummy_dense`, x, G)
+    .Call(`_mmcfa_fast_dummy_dense`, x, G)
 }
 
 compute_prob_group <- function(B, beta_group, idx) {
-    .Call(`_mixff_compute_prob_group`, B, beta_group, idx)
+    .Call(`_mmcfa_compute_prob_group`, B, beta_group, idx)
 }
 
 predict_prob_cpp <- function(M, w, B, beta) {
-    .Call(`_mixff_predict_prob_cpp`, M, w, B, beta)
+    .Call(`_mmcfa_predict_prob_cpp`, M, w, B, beta)
 }
 
 fast_aggregate_sum <- function(log_pz, id) {
-    .Call(`_mixff_fast_aggregate_sum`, log_pz, id)
+    .Call(`_mmcfa_fast_aggregate_sum`, log_pz, id)
 }
 
 update_theta_cpp <- function(epsilon, R, id, id_unique) {
-    .Call(`_mixff_update_theta_cpp`, epsilon, R, id, id_unique)
+    .Call(`_mmcfa_update_theta_cpp`, epsilon, R, id, id_unique)
 }
 
 compute_ll <- function(epsilon, Rn, mu, U, Z) {
-    .Call(`_mixff_compute_ll`, epsilon, Rn, mu, U, Z)
+    .Call(`_mmcfa_compute_ll`, epsilon, Rn, mu, U, Z)
 }
 
